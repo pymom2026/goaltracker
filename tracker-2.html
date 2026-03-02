@@ -1,0 +1,2527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Tracker">
+<meta name="theme-color" content="#1A0F05">
+<title>My Daily Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&family=Cormorant:ital@1&display=swap" rel="stylesheet">
+<style>
+  /* ── HERMÈS-INSPIRED DESIGN SYSTEM ─────────────────────────────
+     Maison palette: parchment ivory, burnt orange, cognac, chocolate
+     Typography: Cormorant Garamond display / Jost body
+  ────────────────────────────────────────────────────────────────*/
+  :root {
+    --bg:         #FAF7F2;        /* warm ivory parchment          */
+    --bg-deep:    #F2EBE0;        /* slightly deeper parchment     */
+    --surface:    #FFFFFF;        /* pure white card               */
+    --surface2:   #F7F3ED;        /* off-white panel               */
+    --orange:     #C8521A;        /* burnt orange — primary accent */
+    --cognac:     #8B3A10;        /* deep cognac                   */
+    --chocolate:  #1A0F05;        /* near-black chocolate          */
+    --sand:       #D4B896;        /* warm sand                     */
+    --sand-light: #EAD9C4;        /* lighter sand                  */
+    --gold:       #B8860B;        /* dark gold                     */
+    --gold-light: #D4A843;        /* warm gold highlight           */
+    --sage:       #7A9A7A;        /* muted sage for complete       */
+    --text:       #1A0F05;        /* chocolate body text           */
+    --text-mid:   #6B4C33;        /* mid-tone warm brown           */
+    --text-muted: #A08060;        /* warm muted                    */
+    --border:     rgba(26,15,5,0.08);
+    --border-med: rgba(26,15,5,0.14);
+    --radius:     4px;            /* refined — almost no rounding  */
+    --radius-lg:  8px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow-x: hidden;
+    /* Subtle paper grain texture */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.018'/%3E%3C/svg%3E");
+  }
+
+  /* ── HEADER ─────────────────────────────────────────────────── */
+  .header {
+    padding: 56px 28px 32px;
+    background: var(--chocolate);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Fine diagonal rule — the signature textile motif */
+  .header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(200,82,26,0.06) 0px,
+      rgba(200,82,26,0.06) 1px,
+      transparent 1px,
+      transparent 12px
+    );
+    pointer-events: none;
+  }
+
+  /* Orange accent bar at top — like a ribbon */
+  .header::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--orange) 0%, var(--gold-light) 50%, var(--orange) 100%);
+  }
+
+  .header-date {
+    font-family: 'Jost', sans-serif;
+    font-weight: 200;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 14px;
+  }
+
+  .header-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 32px;
+    line-height: 1.25;
+    color: var(--bg);
+  }
+
+  .header-title em {
+    font-style: italic;
+    color: var(--sand-light);
+    font-weight: 300;
+  }
+
+  .streak-badge {
+    position: absolute;
+    top: 56px; right: 28px;
+    background: rgba(200,82,26,0.2);
+    border: 1px solid rgba(200,82,26,0.35);
+    border-radius: 2px;
+    padding: 6px 12px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    font-weight: 400;
+    color: var(--sand-light);
+    text-transform: uppercase;
+  }
+
+  /* ── TABS ───────────────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    background: var(--chocolate);
+    border-bottom: 1px solid rgba(200,82,26,0.2);
+    padding: 0 4px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 14px 8px 13px;
+    text-align: center;
+    font-family: 'Jost', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(250,247,242,0.4);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.25s;
+    user-select: none;
+  }
+
+  .tab.active {
+    color: var(--bg);
+    border-bottom-color: var(--orange);
+  }
+
+  /* ── PANELS ─────────────────────────────────────────────────── */
+  .panel {
+    display: none;
+    padding: 24px 20px 120px;
+    animation: fadeUp 0.3s ease both;
+  }
+  .panel.active { display: block; }
+
+  /* ── SECTION LABELS ─────────────────────────────────────────── */
+  .section-label {
+    font-family: 'Jost', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── PROGRESS CARDS ─────────────────────────────────────────── */
+  .progress-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .progress-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px 16px 16px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Progress fill — thin line at bottom like a luxury gauge */
+  .progress-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    width: 100%;
+    background: var(--border-med);
+  }
+
+  .progress-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    width: calc(var(--prog, 0) * 100%);
+    background: var(--orange);
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    z-index: 1;
+  }
+
+  .progress-card.study::before { background: var(--gold); }
+
+  .progress-card-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 40px;
+    line-height: 1;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .progress-card-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .progress-card-sub {
+    font-size: 10px;
+    color: var(--sand);
+    margin-top: 3px;
+    font-weight: 300;
+  }
+
+  /* ── TASK CARDS ─────────────────────────────────────────────── */
+  .task-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .task-card:active { transform: scale(0.99); background: var(--bg-deep); }
+
+  .task-card.done {
+    border-left-color: var(--sage);
+    opacity: 0.75;
+  }
+
+  .task-card.done .task-name { text-decoration: line-through; text-decoration-color: var(--sand); }
+
+  .check-circle {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border-med);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    background: transparent;
+  }
+
+  .task-card.done .check-circle {
+    background: var(--sage);
+    border-color: var(--sage);
+  }
+
+  .check-circle svg { opacity: 0; transition: opacity 0.2s; }
+  .task-card.done .check-circle svg { opacity: 1; }
+
+  .task-info { flex: 1; min-width: 0; }
+
+  .task-name {
+    font-family: 'Jost', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .task-time {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    font-weight: 300;
+  }
+
+  .task-type {
+    font-size: 8px;
+    letter-spacing: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .type-exercise {
+    background: rgba(200,82,26,0.08);
+    color: var(--orange);
+    border: 1px solid rgba(200,82,26,0.2);
+  }
+
+  .type-study {
+    background: rgba(184,134,11,0.08);
+    color: var(--gold);
+    border: 1px solid rgba(184,134,11,0.2);
+  }
+
+  .task-edit-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: var(--radius);
+    flex-shrink: 0;
+    transition: color 0.15s;
+    line-height: 1;
+  }
+
+  .task-edit-btn:active { color: var(--text); }
+
+  /* ── WEEK GRID ───────────────────────────────────────────────── */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .week-nav-btn {
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    color: var(--text-mid);
+    font-size: 18px;
+    width: 32px; height: 32px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-family: 'Jost', sans-serif;
+  }
+
+  .week-nav-btn:active { background: var(--bg-deep); }
+
+  .week-nav-label {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .week-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .week-day-label {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .week-dot {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border-med);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: 'Jost', sans-serif;
+  }
+
+  .week-dot:active { transform: scale(0.9); }
+  .week-dot.today  { border-color: var(--orange); color: var(--orange); font-weight: 500; }
+  .week-dot.selected { background: var(--chocolate); border-color: var(--chocolate); color: var(--bg); }
+  .week-dot.complete { background: var(--sage); border-color: var(--sage); color: white; }
+  .week-dot.partial  { background: var(--sand-light); border-color: var(--sand); color: var(--cognac); }
+
+  /* ── ENERGY ──────────────────────────────────────────────────── */
+  .energy-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .energy-btn {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 12px 4px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Jost', sans-serif;
+  }
+
+  .energy-btn:active { transform: scale(0.96); }
+
+  .energy-btn.selected {
+    background: var(--chocolate);
+    border-color: var(--chocolate);
+    color: var(--bg);
+  }
+
+  .energy-label {
+    display: block;
+    font-size: 7px;
+    letter-spacing: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .energy-btn.selected .energy-label { color: var(--sand-light); }
+
+  /* ── NOTES ───────────────────────────────────────────────────── */
+  .note-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 14px;
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-weight: 300;
+    line-height: 1.7;
+    resize: none;
+    outline: none;
+    min-height: 100px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .note-input:focus { border-color: var(--sand); }
+  .note-input::placeholder { color: var(--sand); font-style: italic; }
+
+  .save-btn {
+    width: 100%;
+    background: var(--chocolate);
+    color: var(--bg);
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-family: 'Jost', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .save-btn:active { background: var(--cognac); }
+  .save-btn.study-btn { background: var(--cognac); }
+
+  /* ── STATS ───────────────────────────────────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 10px 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--sand-light);
+  }
+
+  .stat-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 300;
+    display: block;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 7px;
+    letter-spacing: 1.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* ── LOGS ────────────────────────────────────────────────────── */
+  .log-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .log-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .log-dot.study { background: var(--gold); }
+
+  .log-name {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .log-time {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  /* ── GOOGLE CALENDAR ─────────────────────────────────────────── */
+  .cal-sync-card {
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 4px;
+    border-top: 2px solid var(--orange);
+  }
+
+  .cal-sync-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+
+  .cal-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cal-dot.disconnected { background: var(--sand); }
+  .cal-dot.connected    { background: var(--sage); }
+  .cal-dot.syncing      { background: var(--gold-light); animation: pulse 1s infinite; }
+  .cal-dot.error        { background: var(--orange); }
+
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+  .cal-help {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+  }
+
+  .cal-events-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .cal-event-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--bg-deep);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    border-left: 2px solid var(--sand);
+  }
+
+  .cal-event-item.exercise { border-left-color: var(--orange); }
+  .cal-event-item.study    { border-left-color: var(--gold); }
+  .cal-event-item.conflict { border-left-color: var(--cognac); }
+
+  .cal-event-time  { font-size: 10px; color: var(--text-muted); white-space: nowrap; margin-top: 1px; font-weight: 300; }
+  .cal-event-title { font-size: 13px; color: var(--text); flex: 1; font-weight: 300; }
+
+  .cal-event-tag {
+    font-size: 7px;
+    padding: 3px 7px;
+    border-radius: 2px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .tag-study    { background: rgba(184,134,11,0.1); color: var(--gold); }
+  .tag-exercise { background: rgba(200,82,26,0.1);  color: var(--orange); }
+  .tag-conflict { background: rgba(139,58,16,0.1);  color: var(--cognac); }
+  .tag-other    { background: rgba(26,15,5,0.06);   color: var(--text-muted); }
+
+  .cal-sync-footer {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .cal-last-sync   { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+  .cal-resync-btn  {
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--orange); background: none; border: none;
+    font-family: 'Jost', sans-serif; cursor: pointer; padding: 0; font-weight: 500;
+  }
+
+  .cal-connect-btn {
+    background: var(--chocolate);
+    border: none;
+    border-radius: var(--radius);
+    padding: 13px 16px;
+    color: var(--bg);
+    font-family: 'Jost', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cal-connect-btn.full { width: 100%; }
+  .cal-connect-btn.outline {
+    background: transparent;
+    border: 1px solid var(--border-med);
+    color: var(--text-muted);
+    letter-spacing: 2px;
+  }
+  .cal-connect-btn:active { opacity: 0.8; }
+
+  /* ── BOTTOM NAV ──────────────────────────────────────────────── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: var(--chocolate);
+    border-top: 1px solid rgba(200,82,26,0.2);
+    display: flex;
+    padding: 12px 0 28px;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Jost', sans-serif;
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(250,247,242,0.35);
+    transition: color 0.2s;
+    padding: 4px 0;
+  }
+
+  .nav-btn.active { color: var(--bg); }
+  .nav-btn:nth-child(2).active { color: var(--sand-light); }
+  .nav-btn:nth-child(3).active { color: var(--sand); }
+  .nav-icon { font-size: 20px; line-height: 1; }
+
+  /* ── SCORE CARD ──────────────────────────────────────────────── */
+  .score-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px;
+    border: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .score-row:last-child { margin-bottom: 0; }
+
+  .score-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  .score-bar-track {
+    flex: 1;
+    height: 3px;
+    background: var(--border-med);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--orange);
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .score-bar-fill.study { background: var(--gold); }
+
+  .score-pct {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-mid);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .score-missed { margin-top: 10px; }
+  .score-missed-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .score-missed-items { display: flex; flex-wrap: wrap; gap: 6px; }
+  .score-missed-item {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 4px 10px;
+    font-size: 10px;
+    color: var(--text-mid);
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 300;
+  }
+
+  .score-missed-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--orange); flex-shrink: 0; }
+  .score-missed-dot.study { background: var(--gold); }
+
+  /* ── EDIT MODAL ──────────────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,15,5,0.65);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 28px 24px 40px;
+    width: 100%;
+    max-width: 430px;
+    animation: slideUp 0.28s cubic-bezier(0.4,0,0.2,1);
+    border-top: 3px solid var(--orange);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  .modal-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .modal input, .modal textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-family: 'Jost', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .modal input:focus, .modal textarea:focus { border-color: var(--sand); }
+  .modal textarea { resize: vertical; min-height: 70px; line-height: 1.6; }
+
+  .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+
+  .modal-btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: var(--radius);
+    font-family: 'Jost', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .modal-btn.primary   { background: var(--chocolate); color: var(--bg); }
+  .modal-btn.secondary { background: transparent; border: 1px solid var(--border-med); color: var(--text-muted); }
+  .modal-btn.danger    { background: transparent; border: 1px solid rgba(200,82,26,0.3); color: var(--orange); }
+
+  /* ── STUDY LOG ───────────────────────────────────────────────── */
+  .study-log-item {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--gold);
+    position: relative;
+  }
+
+  .study-log-date {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .study-log-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--text);
+    line-height: 1.65;
+    font-style: italic;
+  }
+
+  /* ── MISC ────────────────────────────────────────────────────── */
+  .completed-msg {
+    text-align: center;
+    padding: 24px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(200,82,26,0.1);
+    animation: rippleAnim 0.5s ease-out forwards;
+    pointer-events: none;
+  }
+
+  @keyframes rippleAnim {
+    from { transform: scale(0); opacity: 1; }
+    to   { transform: scale(4); opacity: 0; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+</style>
+  <script>
+  // ── YOUR GOOGLE CREDENTIALS ───────────────────────────────────
+  // Paste your values from Google Cloud Console (2026Q1-Goal-tracker project)
+  // API key: APIs & Services → Credentials → your API key
+  // Client ID: APIs & Services → Credentials → your OAuth 2.0 Client ID
+  window.TRACKER_CONFIG = {
+    clientId:  'YOUR_CLIENT_ID.apps.googleusercontent.com',
+    apiKey:    'YOUR_API_KEY',
+    agentUrl:  'YOUR_RAILWAY_URL'   // e.g. https://goal-tracker-agent.up.railway.app
+  };
+  // ─────────────────────────────────────────────────────────────
+  </script>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-date" id="headerDate"></div>
+  <div class="header-title">Good morning,<br><em>let's crush it today.</em></div>
+  <div class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span> day streak</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('today')">Today</div>
+  <div class="tab" onclick="switchTab('study')">Study</div>
+  <div class="tab" onclick="switchTab('progress')">Progress</div>
+</div>
+
+<!-- TODAY PANEL -->
+<div class="panel active" id="panel-today">
+
+  <!-- Agent notification banner (shown when notification tapped) -->
+  <div id="agentBanner" style="display:none;background:var(--surface);border:1px solid var(--border-med);border-top:2px solid var(--gold);border-radius:var(--radius);padding:18px;margin-bottom:4px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span style="font-size:18px;">✦</span>
+      <div style="font-family:'Jost',sans-serif;font-size:9px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--gold);">Schedule Note</div>
+    </div>
+    <div id="agentSuggestionText" style="font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;font-weight:300;line-height:1.7;color:var(--text);margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="dismissAgentBanner()" style="flex:1;background:var(--chocolate);border:none;border-radius:var(--radius);padding:12px;color:var(--bg);font-family:'Jost',sans-serif;font-size:9px;font-weight:500;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;">Noted</button>
+      <button onclick="dismissAgentBanner()" style="flex:1;background:transparent;border:1px solid var(--border-med);border-radius:var(--radius);padding:12px;color:var(--text-muted);font-family:'Jost',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Dismiss</button>
+    </div>
+  </div>
+
+  <div class="section-label">Overview</div>
+  <div class="progress-summary">
+    <div class="progress-card" id="exerciseCard" style="--prog:0">
+      <div class="progress-card-num" id="exerciseDone">0</div>
+      <div class="progress-card-label">Exercise done</div>
+      <div class="progress-card-sub" id="exerciseGoal">of 1 session</div>
+    </div>
+    <div class="progress-card study" id="studyCard" style="--prog:0">
+      <div class="progress-card-num" id="studyDone">0</div>
+      <div class="progress-card-label">Study blocks</div>
+      <div class="progress-card-sub" id="studyGoal">of 2 blocks</div>
+    </div>
+  </div>
+
+  <div class="section-label">Week — tap a day to view its plan</div>
+  <div class="week-nav">
+    <button class="week-nav-btn" onclick="shiftWeek(-1, 'today')">&#8249;</button>
+    <span class="week-nav-label" id="weekNavLabelToday"></span>
+    <button class="week-nav-btn" onclick="shiftWeek(1, 'today')">&#8250;</button>
+  </div>
+  <div class="week-grid" id="weekGridToday"></div>
+
+  <div class="section-label" id="todayCalLabel" style="display:none">Today on Calendar</div>
+  <div id="todayCalEvents"></div>
+
+  <div class="section-label">Exercise</div>
+  <div id="exerciseTasks"></div>
+
+  <div class="section-label">Study</div>
+  <div id="studyTasksToday"></div>
+
+  <div class="section-label">How's your energy?</div>
+  <div class="energy-row" id="energyRow">
+    <button class="energy-btn" onclick="setEnergy(1, this)">😴<span class="energy-label">LOW</span></button>
+    <button class="energy-btn" onclick="setEnergy(2, this)">😐<span class="energy-label">OK</span></button>
+    <button class="energy-btn" onclick="setEnergy(3, this)">😊<span class="energy-label">GOOD</span></button>
+    <button class="energy-btn" onclick="setEnergy(4, this)">🔥<span class="energy-label">GREAT</span></button>
+  </div>
+
+  <div class="section-label">Quick note</div>
+  <textarea class="note-input" id="todayNote" placeholder="How did today go? Any wins or struggles..."></textarea>
+  <button class="save-btn" onclick="saveNote()">Save Note</button>
+</div>
+
+<!-- STUDY PANEL -->
+<div class="panel" id="panel-study">
+
+  <div class="section-label">Today's Study Blocks</div>
+  <div id="studyTasks"></div>
+
+  <div class="section-label">What did you learn today?</div>
+  <textarea class="note-input" id="studyNote" placeholder="Key concepts, insights, questions to follow up on..."></textarea>
+  <button class="save-btn study-btn" onclick="saveStudyNote()">Save Learning Note</button>
+
+  <div class="section-label">Recent learnings</div>
+  <div id="studyLog"></div>
+</div>
+
+<!-- PROGRESS PANEL -->
+<div class="panel" id="panel-progress">
+
+  <div class="section-label">Google Calendar</div>
+  <div class="cal-sync-card" id="calSyncCard">
+    <div class="cal-sync-status">
+      <span class="cal-dot disconnected" id="calDot"></span>
+      <span id="calStatusText">Not connected</span>
+    </div>
+    <div id="calSignedOut">
+      <button class="cal-connect-btn full" id="googleSignInBtn" onclick="handleAuthClick()">
+        Link Calendar
+      </button>
+      <div class="cal-help" style="margin-top:10px">Link your Google Calendar to see today's events and spot schedule conflicts automatically.</div>
+    </div>
+    <div id="calSignedIn" style="display:none">
+      <div id="calConnectedAs" style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--sage);margin-bottom:12px;font-family:'Jost',sans-serif;"></div>
+      <div id="calEvents" class="cal-events-list"></div>
+      <div class="cal-sync-footer" style="margin-top:10px;">
+        <span class="cal-last-sync" id="calLastSync"></span>
+        <button class="cal-resync-btn" onclick="fetchCalendarEvents()">Refresh ↻</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="cal-connect-btn full outline" onclick="switchAccountClick()" style="flex:1;font-size:12px;">Switch account</button>
+        <button class="cal-connect-btn full outline" onclick="unlinkCalendar()" style="flex:1;font-size:12px;color:var(--accent1);border-color:rgba(232,180,184,0.3);">Unlink calendar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Week</div>
+  <div class="week-nav">
+    <button class="week-nav-btn" onclick="shiftWeek(-1, 'progress')">&#8249;</button>
+    <span class="week-nav-label" id="weekNavLabelProgress"></span>
+    <button class="week-nav-btn" onclick="shiftWeek(1, 'progress')">&#8250;</button>
+  </div>
+  <div class="week-grid" id="weekGrid"></div>
+
+  <div class="section-label">Weekly Score</div>
+  <div id="weekScoreCard"></div>
+
+  <div class="section-label">All-time Stats</div>
+  <div class="stats-grid">
+    <div class="stat-box">
+      <span class="stat-num" style="color:var(--accent1)" id="totalExercise">0</span>
+      <div class="stat-label">EXERCISE SESSIONS</div>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num" style="color:var(--accent2)" id="totalStudy">0</span>
+      <div class="stat-label">STUDY BLOCKS</div>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num" style="color:var(--gold)" id="bestStreak">0</span>
+      <div class="stat-label">BEST STREAK</div>
+    </div>
+  </div>
+
+  <div class="section-label">Exercise Log</div>
+  <div id="exerciseLog"></div>
+
+  <div class="section-label">Study Log</div>
+  <div id="progressStudyLog"></div>
+
+</div>
+
+<!-- TASK EDIT MODAL -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal-sheet">
+    <div class="modal-title" id="modalTitle">Edit Task</div>
+    <div class="modal-field">
+      <label class="modal-label">Task name</label>
+      <input class="modal-input" id="modalName" type="text" placeholder="e.g. Pilates" />
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Time</label>
+      <input class="modal-input" id="modalTime" type="text" placeholder="e.g. 11:00 – 12:30" />
+    </div>
+    <div class="modal-cal-row">
+      <span class="modal-cal-label">📅 Add / update in Google Calendar</span>
+      <button class="modal-cal-toggle" id="modalCalToggle" onclick="toggleCalSync()"></button>
+    </div>
+    <div class="modal-row">
+      <button class="modal-btn danger" onclick="deleteTask()">Delete</button>
+      <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn primary" id="modalSaveBtn" onclick="saveTaskEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('today')">
+    <span class="nav-icon">☀️</span>Today
+  </button>
+  <button class="nav-btn" onclick="switchTab('study')">
+    <span class="nav-icon">📖</span>Study
+  </button>
+  <button class="nav-btn" onclick="switchTab('progress')">
+    <span class="nav-icon">📊</span>Progress
+  </button>
+</nav>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SHORT_DAYS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+const PLAN_START = '2026-02-23'; // Plan starts Monday Feb 23
+
+// ── GOOGLE CALENDAR CONFIG ─────────────────────────────────────
+// Credentials are loaded from config.js (which is NOT committed to GitHub)
+// See setup instructions for how to create config.js
+// Read credentials live at call time (not at parse time)
+function getClientId() { return window.TRACKER_CONFIG?.clientId || ''; }
+function getApiKey()   { return window.TRACKER_CONFIG?.apiKey   || ''; }
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+
+const EXERCISE_BY_DAY = {
+  Monday:    [{ name: 'Functional Training', time: '11:00 – 12:30' }],
+  Tuesday:   [{ name: 'Pilates', time: '11:00 – 12:30' }],
+  Wednesday: [{ name: 'Rest / Light Stretch', time: 'Optional' }],
+  Thursday:  [{ name: 'Yoga – Core & Abs Focus', time: '11:00 – 12:30' }],
+  Friday:    [{ name: 'Functional Training + Core', time: '11:00 – 12:30' }],
+  Saturday:  [{ name: 'Pilates + Yoga Flow', time: '6:00 – 7:00' }],
+  Sunday:    [{ name: 'Long Walk / Active Recovery', time: '6:00 – 7:00' }],
+};
+
+const STUDY_BY_DAY = {
+  Monday:    [{ name: 'AI Fundamentals / Course', time: '8:30 – 11:00' }, { name: 'PM Skills / Projects', time: '1:30 – 3:00' }],
+  Tuesday:   [{ name: 'ML Concepts / LLMs', time: '8:30 – 11:00' }, { name: 'Case Studies / Strategy', time: '1:30 – 3:00' }],
+  Wednesday: [{ name: 'Product Roadmapping / AI Tools', time: '8:30 – 11:30' }, { name: 'Quick AI session', time: '4:00 – 5:00' }],
+  Thursday:  [{ name: 'GenAI / Prompt Eng / APIs', time: '8:30 – 11:00' }, { name: 'Mock Interviews / Prep', time: '1:30 – 3:00' }],
+  Friday:    [{ name: 'Capstone / Portfolio Projects', time: '8:30 – 11:00' }, { name: 'Networking + Job Apps', time: '1:30 – 3:00' }],
+  Saturday:  [{ name: 'Light AI Study / Reading', time: '9:00 – 10:00' }, { name: 'Interview Prep', time: '10:30 – 11:30' }],
+  Sunday:    [{ name: 'AI Study / Weekly Review', time: '9:30 – 11:00' }],
+};
+
+// ─── STATE ───────────────────────────────────────────────────────
+function loadState() {
+  try {
+    const raw = localStorage.getItem('trackerState');
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+function saveState(state) {
+  try { localStorage.setItem('trackerState', JSON.stringify(state)); } catch(e) { console.warn('Storage unavailable:', e); }
+}
+
+function getToday() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Active date — defaults to today, changes when user taps a week dot
+let selectedDate = getToday();
+let weekOffset = 0; // 0 = current week, -1 = last week, +1 = next week
+
+function getActiveDate() {
+  return selectedDate;
+}
+
+function setActiveDate(dateStr) {
+  selectedDate = dateStr;
+  // Update header to reflect selected day
+  const isToday = dateStr === getToday();
+  const d = new Date(dateStr + 'T12:00:00');
+  const opts = { weekday: 'long', month: 'long', day: 'numeric' };
+  const label = isToday ? 'TODAY' : d.toLocaleDateString('en-US', opts).toUpperCase();
+  const headerDate = document.getElementById('headerDate');
+  if (headerDate) headerDate.textContent = label;
+  const headerTitle = document.querySelector('.header-title');
+  if (headerTitle) {
+    if (isToday) {
+      const hour = new Date().getHours();
+      const greet = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+      headerTitle.innerHTML = greet + '<br><em>let\'s crush it today.</em>';
+    } else {
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+      headerTitle.innerHTML = 'Viewing <em>' + dayName + '</em>';
+    }
+  }
+  // Re-render everything for the new date
+  renderExerciseTasks();
+  renderStudyTasks();
+  updateProgressCards();
+  restoreEnergy();
+  restoreNotes();
+  renderWeekGrid();
+}
+
+function getDayData(dateStr) {
+  const state = loadState();
+  const d = state[dateStr] || {};
+  return {
+    exercise: Array.isArray(d.exercise) ? d.exercise : [],
+    study: Array.isArray(d.study) ? d.study : [],
+    energy: d.energy || 0,
+    note: d.note || '',
+    studyNote: d.studyNote || ''
+  };
+}
+
+function saveDayData(dateStr, data) {
+  const state = loadState();
+  state[dateStr] = data;
+  saveState(state);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // ── DUMMY DATA ──────────────────────────────────────────────
+  const _today = getToday();
+  const _state = loadState();
+  if (!_state[_today]) {
+    _state[_today] = {
+      exercise: [0],           // first exercise task checked off
+      study: [],
+      energy: 3,               // "Good" energy
+      note: 'Got my 30 min in this morning — felt great! Core was tough but pushed through.',
+      studyNote: ''
+    };
+    if (!_state._log) _state._log = [];
+    _state._log.unshift({
+      type: 'exercise',
+      name: 'Functional Training (30 min)',
+      time: '11:30 AM',
+      date: _today
+    });
+    saveState(_state);
+  }
+  // ── END DUMMY DATA ──────────────────────────────────────────
+
+  updateHeader();
+  renderExerciseTasks();
+  renderStudyTasks();
+  renderWeekGrid();
+  renderStats();
+  renderStudyLog();
+  renderProgressLog();
+  restoreEnergy();
+  restoreNotes();
+  updateProgressCards();
+  updateStreak();
+  initCalendar();
+  initPushNotifications();
+  checkAgentParam();
+});
+
+function updateHeader() {
+  const now = new Date();
+  const opts = { weekday: 'long', month: 'long', day: 'numeric' };
+  document.getElementById('headerDate').textContent = now.toLocaleDateString('en-US', opts).toUpperCase();
+  const hour = now.getHours();
+  const greet = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+  document.querySelector('.header-title').innerHTML = `${greet}<br><em>let's crush it today.</em>`;
+}
+
+// ─── EXERCISE TASKS ───────────────────────────────────────────────
+function renderExerciseTasks() {
+  const activeDate = getActiveDate();
+  const tasks = getTasksForDate('exercise', activeDate);
+  const data = getDayData(activeDate);
+  const container = document.getElementById('exerciseTasks');
+  container.innerHTML = '';
+
+  tasks.forEach((task, i) => {
+    const done = data.exercise.includes(i);
+    const card = document.createElement('div');
+    card.className = 'task-card' + (done ? ' done' : '');
+    card.innerHTML = `
+      <div class="check-circle">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2.5 7L5.5 10L11.5 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="task-info">
+        <div class="task-name">${task.name}</div>
+        <div class="task-time">${task.time}</div>
+      </div>
+      <button class="task-edit-btn" title="Edit task">✎</button>
+    `;
+    // Check tap vs edit button
+    card.querySelector('.task-edit-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openModal('exercise', i, activeDate);
+    });
+    card.addEventListener('click', (e) => {
+      addRipple(card, e);
+      toggleExercise(i);
+    });
+    container.appendChild(card);
+  });
+
+  if (tasks.length === 0) {
+    container.innerHTML = '<div class="completed-msg">Rest day — enjoy it!</div>';
+  }
+  // Add task button
+  const addBtn = document.createElement('button');
+  addBtn.className = 'cal-connect-btn full outline';
+  addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;';
+  addBtn.textContent = '+ Add exercise';
+  addBtn.onclick = () => openModal('exercise', -1, activeDate);
+  container.parentNode.insertBefore(addBtn, container.nextSibling);
+}
+
+function toggleExercise(idx) {
+  const today = getActiveDate();
+  const data = getDayData(today);
+  const pos = data.exercise.indexOf(idx);
+  if (pos === -1) {
+    data.exercise.push(idx);
+    logActivity('exercise', EXERCISE_BY_DAY[DAYS[new Date().getDay()]][idx]?.name);
+  } else {
+    data.exercise.splice(pos, 1);
+  }
+  saveDayData(today, data);
+  renderExerciseTasks();
+  updateProgressCards();
+  renderWeekGrid();
+  renderStats();
+  renderProgressLog();
+  updateStreak();
+}
+
+// ─── STUDY TASKS ──────────────────────────────────────────────────
+function renderStudyTasks() {
+  const activeDate = getActiveDate();
+  const tasks = getTasksForDate('study', activeDate);
+  const data = getDayData(activeDate);
+
+  // Render into both Today panel and Study panel
+  ['studyTasks', 'studyTasksToday'].forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (tasks.length === 0) {
+      container.innerHTML = '<div class="completed-msg">No study scheduled — tap + to add one.</div>';
+    }
+
+    tasks.forEach((task, i) => {
+      const done = data.study.includes(i);
+      const card = document.createElement('div');
+      card.className = 'task-card' + (done ? ' done' : '');
+      card.innerHTML = `
+        <div class="check-circle">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2.5 7L5.5 10L11.5 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="task-info">
+          <div class="task-name">${task.name}</div>
+          <div class="task-time">${task.time}</div>
+        </div>
+        <button class="task-edit-btn" title="Edit task">✎</button>
+      `;
+      card.querySelector('.task-edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openModal('study', i, activeDate);
+      });
+      card.addEventListener('click', (e) => {
+        addRipple(card, e);
+        toggleStudy(i);
+      });
+      container.appendChild(card);
+    });
+    // Add study button (only in studyTasksToday to avoid duplication)
+    if (containerId === 'studyTasksToday') {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'cal-connect-btn full outline';
+      addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;';
+      addBtn.textContent = '+ Add study block';
+      addBtn.onclick = () => openModal('study', -1, activeDate);
+      container.appendChild(addBtn);
+    }
+  });
+}
+
+function toggleStudy(idx) {
+  const today = getActiveDate();
+  const data = getDayData(today);
+  const pos = data.study.indexOf(idx);
+  if (pos === -1) {
+    data.study.push(idx);
+    logActivity('study', STUDY_BY_DAY[DAYS[new Date().getDay()]][idx]?.name);
+  } else {
+    data.study.splice(pos, 1);
+  }
+  saveDayData(today, data);
+  renderStudyTasks();
+  updateProgressCards();
+  renderWeekGrid();
+  renderStats();
+  renderStudyLog();
+  updateStreak();
+}
+
+// ─── PROGRESS CARDS ───────────────────────────────────────────────
+function updateProgressCards() {
+  const activeDate = getActiveDate();
+  const data = getDayData(activeDate);
+
+  const exTotal = getTasksForDate('exercise', activeDate).length || 1;
+  const exDone = data.exercise.length;
+  document.getElementById('exerciseDone').textContent = exDone;
+  document.getElementById('exerciseGoal').textContent = `of ${exTotal} session${exTotal > 1 ? 's' : ''}`;
+  document.getElementById('exerciseCard').style.setProperty('--prog', Math.min(exDone / exTotal, 1));
+
+  const stTotal = getTasksForDate('study', activeDate).length || 1;
+  const stDone = data.study.length;
+  document.getElementById('studyDone').textContent = stDone;
+  document.getElementById('studyGoal').textContent = `of ${stTotal} block${stTotal > 1 ? 's' : ''}`;
+  document.getElementById('studyCard').style.setProperty('--prog', Math.min(stDone / stTotal, 1));
+}
+
+// ─── WEEK GRID ────────────────────────────────────────────────────
+function renderWeekGrid() {
+  _renderWeekGridInto('weekGrid');
+  _renderWeekGridInto('weekGridToday');
+}
+
+function shiftWeek(dir, panel) {
+  weekOffset += dir;
+  renderWeekGrid();
+  renderWeekScore();
+}
+
+function _renderWeekGridInto(gridId) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  const today = new Date();
+  const todayStr = getToday();
+  // Find Monday of the offset week
+  const dow = today.getDay();
+  const diffToMonday = (dow === 0) ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday + (weekOffset * 7));
+
+  // Update nav labels
+  const labelId = gridId === 'weekGrid' ? 'weekNavLabelProgress' : 'weekNavLabelToday';
+  const navLabel = document.getElementById(labelId);
+  if (navLabel) {
+    if (weekOffset === 0) {
+      navLabel.textContent = 'This week';
+    } else if (weekOffset === -1) {
+      navLabel.textContent = 'Last week';
+    } else if (weekOffset === 1) {
+      navLabel.textContent = 'Next week';
+    } else {
+      const mStr = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const sun = new Date(monday); sun.setDate(monday.getDate() + 6);
+      const sStr = sun.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      navLabel.textContent = mStr + ' – ' + sStr;
+    }
+  }
+
+  const state = loadState();
+  grid.innerHTML = '';
+
+  // Display Mon(1) Tue(2) Wed(3) Thu(4) Fri(5) Sat(6) Sun(0)
+  const dayOrder = [1,2,3,4,5,6,0];
+  const shortLabels = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const jsDay = dayOrder[i];
+    const dayName = DAYS[jsDay];
+    const dayData = state[dateStr];
+    const exGoal = (EXERCISE_BY_DAY[dayName] || []).length;
+    const stGoal = (STUDY_BY_DAY[dayName] || []).length;
+    const exDone = dayData?.exercise?.length || 0;
+    const stDone = dayData?.study?.length || 0;
+    const isToday = dateStr === todayStr;
+    const isFuture = dateStr > todayStr;
+    const beforePlan = dateStr < PLAN_START;
+
+    let cls = 'week-dot';
+    if (dateStr === selectedDate) cls += ' selected';
+    else if (isToday) cls += ' today';
+    else if (!isFuture && !beforePlan && exGoal > 0 && stGoal > 0 && exDone >= exGoal && stDone >= stGoal) cls += ' complete';
+    else if (!isFuture && !beforePlan && (exDone > 0 || stDone > 0)) cls += ' partial';
+
+    const col = document.createElement('div');
+    col.className = 'week-day';
+
+    const dot = document.createElement('div');
+    dot.className = cls;
+    dot.textContent = d.getDate();
+    dot.dataset.date = dateStr;
+    dot.addEventListener('click', () => {
+      selectedDate = dateStr;
+      renderWeekGrid();
+      renderExerciseTasks();
+      renderStudyTasks();
+      updateProgressCards();
+      restoreEnergy();
+      restoreNotes();
+      // Switch to Today tab so user sees the updated plan
+      switchTab('today');
+      // Update header date label
+      const isActiveTdy = dateStr === todayStr;
+      const headerDate = document.getElementById('headerDate');
+      if (headerDate) {
+        if (isActiveTdy) {
+          headerDate.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+        } else {
+          headerDate.textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+        }
+      }
+      const headerTitle = document.querySelector('.header-title');
+      if (headerTitle) {
+        if (isActiveTdy) {
+          const hour = new Date().getHours();
+          const greet = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+          headerTitle.innerHTML = greet + '<br><em>let\'s crush it today.</em>';
+        } else {
+          const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+          headerTitle.innerHTML = 'Viewing <em>' + dayName + '</em>';
+        }
+      }
+    });
+
+    const label = document.createElement('div');
+    label.className = 'week-day-label';
+    label.textContent = shortLabels[i];
+
+    col.appendChild(label);
+    col.appendChild(dot);
+    grid.appendChild(col);
+  }
+}
+
+// ─── STATS ────────────────────────────────────────────────────────
+function renderStats() {
+  const state = loadState();
+  let totalEx = 0, totalSt = 0;
+  Object.values(state).forEach(d => {
+    if (d.exercise) totalEx += d.exercise.length;
+    if (d.study) totalSt += d.study.length;
+  });
+  document.getElementById('totalExercise').textContent = totalEx;
+  document.getElementById('totalStudy').textContent = totalSt;
+  document.getElementById('bestStreak').textContent = calculateBestStreak(state);
+}
+
+function calculateBestStreak(state) {
+  try {
+    const dates = Object.keys(state).filter(k => k.match(/^\d{4}-\d{2}-\d{2}$/)).sort();
+    let best = 0, cur = 0, prev = null;
+    dates.forEach(d => {
+      const data = state[d] || {};
+      const hasActivity = (data.exercise?.length > 0) || (data.study?.length > 0);
+      if (!hasActivity) { cur = 0; prev = null; return; }
+      cur = (!prev || (new Date(d) - new Date(prev)) / 86400000 > 1) ? 1 : cur + 1;
+      best = Math.max(best, cur);
+      prev = d;
+    });
+    return best;
+  } catch(e) { return 0; }
+}
+
+function updateStreak() {
+  try {
+    const state = loadState();
+    const today = getToday();
+    let streak = 0;
+    let d = new Date();
+    for (let i = 0; i < 366; i++) {
+      const dateStr = d.toISOString().split('T')[0];
+      const data = state[dateStr] || {};
+      const hasActivity = (data.exercise?.length > 0) || (data.study?.length > 0);
+      if (!hasActivity && dateStr !== today) break;
+      if (hasActivity) streak++;
+      d.setDate(d.getDate() - 1);
+    }
+    const sc = document.getElementById('streakCount');
+    const bs = document.getElementById('bestStreak');
+    if (sc) sc.textContent = streak;
+    if (bs) bs.textContent = calculateBestStreak(state);
+  } catch(e) { console.warn('updateStreak error:', e); }
+}
+
+// ─── ENERGY ───────────────────────────────────────────────────────
+function setEnergy(val, btn) {
+  document.querySelectorAll('.energy-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const today = getActiveDate();
+  const data = getDayData(today);
+  data.energy = val;
+  saveDayData(today, data);
+}
+
+function restoreEnergy() {
+  const data = getDayData(getActiveDate());
+  if (data.energy) {
+    const btns = document.querySelectorAll('.energy-btn');
+    if (btns[data.energy - 1]) btns[data.energy - 1].classList.add('selected');
+  }
+}
+
+// ─── NOTES ────────────────────────────────────────────────────────
+function saveNote() {
+  const today = getActiveDate();
+  const data = getDayData(today);
+  data.note = document.getElementById('todayNote').value;
+  saveDayData(today, data);
+  flashSave(document.querySelector('.save-btn:not(.study-btn)'));
+}
+
+function saveStudyNote() {
+  const today = getActiveDate();
+  const data = getDayData(today);
+  data.studyNote = document.getElementById('studyNote').value;
+  saveDayData(today, data);
+  logActivity('study-note', document.getElementById('studyNote').value.slice(0, 60));
+  renderStudyLog();
+  flashSave(document.querySelector('.study-btn'));
+}
+
+function restoreNotes() {
+  const data = getDayData(getActiveDate());
+  document.getElementById('todayNote').value = data.note || '';
+  document.getElementById('studyNote').value = data.studyNote || '';
+}
+
+function flashSave(btn) {
+  const orig = btn.textContent;
+  btn.textContent = 'Saved!';
+  btn.style.opacity = '0.7';
+  setTimeout(() => { btn.textContent = orig; btn.style.opacity = '1'; }, 1500);
+}
+
+// ─── ACTIVITY LOG ─────────────────────────────────────────────────
+function logActivity(type, name) {
+  try {
+    const state = loadState();
+    if (!state._log) state._log = [];
+    state._log.unshift({ type, name: name || '', time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), date: getToday() });
+    if (state._log.length > 50) state._log = state._log.slice(0, 50);
+    saveState(state);
+  } catch(e) { console.warn('logActivity error:', e); }
+}
+
+function renderStudyLog() {
+  const state = loadState();
+  const log = (state._log || []).filter(l => l.type === 'study-note').slice(0, 5);
+  const container = document.getElementById('studyLog');
+  container.innerHTML = '';
+  if (log.length === 0) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No learning notes yet — save one above!</div>';
+    return;
+  }
+  log.forEach(l => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div class="log-dot study"></div><div class="log-text">${l.name}${l.name.length >= 60 ? '...' : ''}</div><div class="log-time">${l.date}</div>`;
+    container.appendChild(div);
+  });
+}
+
+function renderProgressLog() {
+  const state = loadState();
+  const exLog = (state._log || []).filter(l => l.type === 'exercise').slice(0, 8);
+  const stLog = (state._log || []).filter(l => l.type === 'study').slice(0, 8);
+
+  const exContainer = document.getElementById('exerciseLog');
+  exContainer.innerHTML = '';
+  if (exLog.length === 0) {
+    exContainer.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No sessions logged yet.</div>';
+  } else {
+    exLog.forEach(l => {
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.innerHTML = `<div class="log-dot exercise"></div><div class="log-text">${l.name}</div><div class="log-time">${l.date} ${l.time}</div>`;
+      exContainer.appendChild(div);
+    });
+  }
+
+  const stContainer = document.getElementById('progressStudyLog');
+  stContainer.innerHTML = '';
+  if (stLog.length === 0) {
+    stContainer.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No study blocks logged yet.</div>';
+  } else {
+    stLog.forEach(l => {
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.innerHTML = `<div class="log-dot study"></div><div class="log-text">${l.name}</div><div class="log-time">${l.date} ${l.time}</div>`;
+      stContainer.appendChild(div);
+    });
+  }
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  const tabIdx = ['today','study','progress'].indexOf(name);
+  if (tabIdx !== -1) {
+    document.querySelectorAll('.tab')[tabIdx]?.classList.add('active');
+    document.querySelectorAll('.nav-btn')[tabIdx]?.classList.add('active');
+  }
+
+  const panel = document.getElementById('panel-' + name);
+  if (panel) panel.classList.add('active');
+
+  if (name === 'progress') { renderWeekGrid(); renderStats(); renderProgressLog(); renderWeekScore(); }
+  if (name === 'today')    { renderWeekGrid(); }
+  if (name === 'study')    { renderStudyLog(); }
+}
+
+// ─── GOOGLE CALENDAR OAUTH ───────────────────────────────────────
+
+// ── Token persistence ────────────────────────────────────────────
+function saveToken(token) {
+  try {
+    const t = Object.assign({}, token, { expires_at: Date.now() + ((token.expires_in || 3600) * 1000) });
+    localStorage.setItem('gcalToken', JSON.stringify(t));
+  } catch(e) {}
+}
+function loadSavedToken() {
+  try {
+    const t = JSON.parse(localStorage.getItem('gcalToken') || 'null');
+    if (!t || !t.access_token) return null;
+    if (t.expires_at && Date.now() > t.expires_at) { clearToken(); return null; }
+    return t;
+  } catch(e) { return null; }
+}
+function clearToken() {
+  try { localStorage.removeItem('gcalToken'); } catch(e) {}
+}
+function saveConnectedEmail(email) {
+  try { localStorage.setItem('gcalEmail', email); } catch(e) {}
+}
+function loadConnectedEmail() {
+  try { return localStorage.getItem('gcalEmail') || ''; } catch(e) { return ''; }
+}
+function clearConnectedEmail() {
+  try { localStorage.removeItem('gcalEmail'); } catch(e) {}
+}
+
+// ── Google API init ───────────────────────────────────────────────
+let tokenClient = null;
+let gapiReady = false;
+let gsiReady  = false;
+
+// Called by gapi script onload via: gapi.load callback
+async function initGapiClient() {
+  try {
+    await gapi.client.init({ apiKey: getApiKey() });
+    // Load Calendar API discovery doc separately (more reliable)
+    await gapi.client.load('calendar', 'v3');
+    gapiReady = true;
+    console.log('GAPI ready');
+    const _b = document.getElementById('googleSignInBtn');
+    if (_b && gsiReady) { _b.textContent = 'Link Calendar'; setCalStatus('disconnected', 'Ready to connect'); }
+    // Restore saved session if GSI also ready
+    const saved = loadSavedToken();
+    if (saved && gsiReady) {
+      gapi.client.setToken(saved);
+      restoreSignedInState();
+    } else if (saved) {
+      // GSI not ready yet — will be handled in initGsi
+    }
+  } catch(e) {
+    console.error('GAPI init failed:', e);
+    setCalStatus('error', 'Google API error: ' + (e.message || e.result?.error?.message || 'check your API key'));
+  }
+}
+
+function initGsi() {
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: getClientId(),
+      scope: SCOPES,
+      callback: onTokenResponse
+    });
+    gsiReady = true;
+    const _b2 = document.getElementById('googleSignInBtn');
+    if (_b2 && gapiReady) { _b2.textContent = 'Link Calendar'; setCalStatus('disconnected', 'Ready to connect'); }
+    // If gapi already ready and we have a saved token, restore
+    const saved = loadSavedToken();
+    if (saved && gapiReady) {
+      gapi.client.setToken(saved);
+      restoreSignedInState();
+    }
+  } catch(e) {
+    console.error('GSI init failed:', e);
+    setCalStatus('error', 'Google Sign-In failed to load — refresh the page');
+  }
+}
+
+async function onTokenResponse(resp) {
+  if (resp.error) {
+    console.error('OAuth error:', resp.error, resp.error_description);
+    setCalStatus('error', 'Sign-in failed: ' + (resp.error_description || resp.error));
+    return;
+  }
+  const token = gapi.client.getToken();
+  if (token) saveToken(token);
+
+  // Fetch user email
+  try {
+    const profile = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v2/userinfo' });
+    const email = profile.result?.email || '';
+    if (email) {
+      saveConnectedEmail(email);
+      const el = document.getElementById('calConnectedAs');
+      if (el) el.textContent = 'Connected as: ' + email;
+    }
+  } catch(e) { console.warn('Could not fetch profile:', e); }
+
+  showSignedIn();
+  await fetchCalendarEvents();
+}
+
+function restoreSignedInState() {
+  const email = loadConnectedEmail();
+  const el = document.getElementById('calConnectedAs');
+  if (el && email) el.textContent = 'Connected as: ' + email;
+  showSignedIn();
+  fetchCalendarEvents();
+}
+
+// ── Auth actions ──────────────────────────────────────────────────
+function handleAuthClick() {
+  const cid = getClientId();
+  const key = getApiKey();
+
+  // Guard: credentials must be filled in
+  if (!cid || cid.includes('YOUR_CLIENT_ID') || cid.length < 10) {
+    setCalStatus('error', 'Open index.html and paste your real Client ID into the config block');
+    return;
+  }
+  if (!key || key.includes('YOUR_API_KEY') || key.length < 10) {
+    setCalStatus('error', 'Open index.html and paste your real API Key into the config block');
+    return;
+  }
+
+  // If GSI not yet initialized (e.g. first tap), initialize now then open picker
+  if (!gsiReady || !tokenClient) {
+    setCalStatus('syncing', 'Connecting…');
+    const btn = document.getElementById('googleSignInBtn');
+    if (btn) { btn.textContent = 'Connecting…'; btn.disabled = true; }
+
+    // Re-run full init (in case it was skipped due to placeholder creds before)
+    if (!gapiReady) {
+      if (typeof gapi !== 'undefined') {
+        gapi.load('client', initGapiClient);
+      } else {
+        const s = document.createElement('script');
+        s.src = 'https://apis.google.com/js/api.js';
+        s.onload = () => gapi.load('client', initGapiClient);
+        document.head.appendChild(s);
+      }
+    }
+    if (!gsiReady || !tokenClient) {
+      if (typeof google !== 'undefined' && google.accounts) {
+        initGsi();
+      } else {
+        const s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.onload = initGsi;
+        document.head.appendChild(s);
+      }
+    }
+
+    // Poll until ready, then open picker
+    let waited = 0;
+    const poll = setInterval(() => {
+      waited += 300;
+      if (gsiReady && gapiReady && tokenClient) {
+        clearInterval(poll);
+        if (btn) { btn.textContent = 'Link Calendar'; btn.disabled = false; }
+        setCalStatus('disconnected', 'Ready');
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+      } else if (waited >= 10000) {
+        clearInterval(poll);
+        if (btn) { btn.textContent = 'Link Calendar'; btn.disabled = false; }
+        setCalStatus('error', 'Could not load Google — check internet connection');
+      }
+    }, 300);
+    return;
+  }
+
+  // APIs ready — open Google account picker immediately
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+function switchAccountClick() {
+  // Revoke + clear, then show picker for a different account
+  revokeAndClear();
+  setTimeout(() => {
+    if (tokenClient) tokenClient.requestAccessToken({ prompt: 'select_account' });
+  }, 300);
+}
+
+function unlinkCalendar() {
+  revokeAndClear();
+  showSignedOut();
+  setCalStatus('disconnected', 'Calendar unlinked');
+  // Clear calendar events from UI
+  const calEvents = document.getElementById('calEvents');
+  if (calEvents) calEvents.innerHTML = '';
+  const todayLabel = document.getElementById('todayCalLabel');
+  const todayEvents = document.getElementById('todayCalEvents');
+  if (todayLabel) todayLabel.style.display = 'none';
+  if (todayEvents) todayEvents.innerHTML = '';
+}
+
+function revokeAndClear() {
+  try {
+    const token = gapi.client.getToken();
+    if (token?.access_token) {
+      google.accounts.oauth2.revoke(token.access_token, () => {});
+      gapi.client.setToken('');
+    }
+  } catch(e) {}
+  clearToken();
+  clearConnectedEmail();
+}
+
+function showSignedIn() {
+  const out = document.getElementById('calSignedOut');
+  const inn = document.getElementById('calSignedIn');
+  if (out) out.style.display = 'none';
+  if (inn) inn.style.display = '';
+  setCalStatus('connected', 'Google Calendar linked');
+}
+
+function showSignedOut() {
+  const out = document.getElementById('calSignedOut');
+  const inn = document.getElementById('calSignedIn');
+  if (out) out.style.display = '';
+  if (inn) inn.style.display = 'none';
+}
+
+// ── Fetch events ─────────────────────────────────────────────────
+async function fetchCalendarEvents() {
+  setCalStatus('syncing', 'Fetching events…');
+  try {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfWeek  = new Date(startOfDay);
+    endOfWeek.setDate(startOfDay.getDate() + 7);
+
+    const response = await gapi.client.calendar.events.list({
+      calendarId: 'primary',
+      timeMin: startOfDay.toISOString(),
+      timeMax: endOfWeek.toISOString(),
+      showDeleted: false,
+      singleEvents: true,
+      maxResults: 50,
+      orderBy: 'startTime'
+    });
+
+    const events = response.result.items || [];
+    const now2 = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const lastSync = document.getElementById('calLastSync');
+    if (lastSync) lastSync.textContent = 'Last synced: ' + now2;
+    setCalStatus('connected', `Synced · ${events.length} events this week`);
+    renderGoogleEvents(events);
+  } catch(e) {
+    console.warn('Calendar fetch error:', e);
+    if (e.status === 401) {
+      clearToken();
+      showSignedOut();
+      setCalStatus('error', 'Session expired — please sign in again');
+    } else {
+      setCalStatus('error', 'Could not load events — tap Refresh to retry');
+    }
+  }
+}
+
+// ── Keywords for classification ───────────────────────────────────
+const EX_KW  = ['exercise','workout','pilates','yoga','cardio','functional','hiit','run','walk','gym','training','core','stretch'];
+const STU_KW = ['ai study','study','course','learning','ml ','genai','prompt','interview prep','portfolio','networking','linkedin','roadmap','ai pm'];
+
+function classifyEvent(title) {
+  const t = (title || '').toLowerCase();
+  if (EX_KW.some(k => t.includes(k)))  return 'exercise';
+  if (STU_KW.some(k => t.includes(k))) return 'study';
+  return 'other';
+}
+
+function isConflictTime(startStr) {
+  if (!startStr) return false;
+  const d = new Date(startStr);
+  const mins = d.getHours() * 60 + d.getMinutes();
+  // Study: 8:30-11:00 (510-660), Exercise: 11:00-12:30 (660-750)
+  return mins >= 510 && mins <= 750;
+}
+
+function fmtTime(dateStr) {
+  if (!dateStr) return 'All day';
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function fmtTimeRange(start, end) {
+  if (!start) return 'All day';
+  const s = new Date(start);
+  const e = end ? new Date(end) : null;
+  const sf = s.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const ef = e ? e.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+  return ef ? `${sf} – ${ef}` : sf;
+}
+
+function isTodayEvent(event) {
+  const todayStr = getToday();
+  const start = event.start?.dateTime || event.start?.date || '';
+  return start.startsWith(todayStr);
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderGoogleEvents(events) {
+  const todayEvents = events.filter(isTodayEvent);
+  const futureEvents = events.filter(e => !isTodayEvent(e));
+
+  // Render in Progress panel
+  const container = document.getElementById('calEvents');
+  if (container) {
+    container.innerHTML = '';
+    if (todayEvents.length === 0 && futureEvents.length === 0) {
+      container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 0">No upcoming events found.</div>';
+    } else {
+      renderEventList(container, todayEvents, 'Today');
+      if (futureEvents.length > 0) renderEventList(container, futureEvents.slice(0,8), 'Coming up');
+    }
+  }
+
+  // Render in Today panel
+  const todayLabel = document.getElementById('todayCalLabel');
+  const todayContainer = document.getElementById('todayCalEvents');
+  if (todayContainer) {
+    todayContainer.innerHTML = '';
+    if (todayEvents.length > 0) {
+      if (todayLabel) todayLabel.style.display = '';
+      renderEventList(todayContainer, todayEvents, null);
+    } else {
+      if (todayLabel) todayLabel.style.display = 'none';
+    }
+  }
+}
+
+function renderEventList(container, events, groupLabel) {
+  if (groupLabel) {
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:10px 0 6px;';
+    lbl.textContent = groupLabel;
+    container.appendChild(lbl);
+  }
+  events.forEach(ev => {
+    const title = ev.summary || '(no title)';
+    const type = classifyEvent(title);
+    const startStr = ev.start?.dateTime || ev.start?.date || '';
+    const endStr   = ev.end?.dateTime   || ev.end?.date   || '';
+    const isConflict = type === 'other' && isConflictTime(startStr);
+    const timeStr = ev.start?.date && !ev.start?.dateTime
+      ? 'All day'
+      : fmtTimeRange(startStr, endStr);
+
+    const div = document.createElement('div');
+    div.className = 'cal-event-item ' + (isConflict ? 'conflict' : type);
+    div.innerHTML = `
+      <div class="cal-event-time">${timeStr}</div>
+      <div class="cal-event-title">${title}</div>
+      <span class="cal-event-tag ${isConflict ? 'tag-conflict' : 'tag-' + type}">${isConflict ? 'MOVES THINGS' : type === 'other' ? 'EVENT' : type.toUpperCase()}</span>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function setCalStatus(state, text) {
+  const dot  = document.getElementById('calDot');
+  const span = document.getElementById('calStatusText');
+  if (!dot || !span) return;
+  dot.className = 'cal-dot ' + state;
+  span.textContent = text;
+}
+
+function initCalendar() {
+  const _cid = getClientId();
+  const _key = getApiKey();
+  if (!_cid || _cid.includes('YOUR_CLIENT_ID') || _cid.length < 10) {
+    setCalStatus('error', 'Paste your Client ID in the config block at the top of index.html');
+    return;
+  }
+  if (!_key || _key.includes('YOUR_API_KEY') || _key.length < 10) {
+    setCalStatus('error', 'Paste your API Key in the config block at the top of index.html');
+    return;
+  }
+  setCalStatus('syncing', 'Loading…');
+  const _btn = document.getElementById('googleSignInBtn');
+  if (_btn) _btn.textContent = 'Loading…';
+
+  // Load GAPI
+  function loadGapi() {
+    if (typeof gapi !== 'undefined') {
+      gapi.load('client', initGapiClient);
+    } else {
+      const s = document.createElement('script');
+      s.src = 'https://apis.google.com/js/api.js';
+      s.onload = () => gapi.load('client', initGapiClient);
+      s.onerror = () => setCalStatus('error', 'Could not load Google API — check your internet connection');
+      document.head.appendChild(s);
+    }
+  }
+
+  // Load GSI
+  function loadGsi() {
+    if (typeof google !== 'undefined' && google.accounts) {
+      initGsi();
+    } else {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = initGsi;
+      s.onerror = () => setCalStatus('error', 'Could not load Google Sign-In — check your internet connection');
+      document.head.appendChild(s);
+    }
+  }
+
+  loadGapi();
+  loadGsi();
+  // Show restored state while loading
+  if (loadSavedToken()) {
+    setCalStatus('syncing', 'Reconnecting to calendar…');
+    const email = loadConnectedEmail();
+    if (email) {
+      const el = document.getElementById('calConnectedAs');
+      if (el) el.textContent = 'Connected as: ' + email;
+      showSignedIn();
+    }
+  }
+}
+
+// ─── TASK OVERRIDES (per-date edits) ────────────────────────────
+
+function getTaskOverrides(dateStr) {
+  try {
+    return JSON.parse(localStorage.getItem('overrides_' + dateStr) || '{}');
+  } catch(e) { return {}; }
+}
+
+function saveTaskOverrides(dateStr, overrides) {
+  try { localStorage.setItem('overrides_' + dateStr, JSON.stringify(overrides)); } catch(e) {}
+}
+
+function getTasksForDate(type, dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const dayName = DAYS[d.getDay()];
+  const defaults = type === 'exercise' ? (EXERCISE_BY_DAY[dayName] || []) : (STUDY_BY_DAY[dayName] || []);
+  const overrides = getTaskOverrides(dateStr);
+  const key = type + 'Tasks';
+  // Merge: start with defaults, apply overrides
+  let tasks = overrides[key] ? overrides[key] : defaults.map(t => ({ ...t }));
+  return tasks;
+}
+
+// ─── MODAL STATE ──────────────────────────────────────────────────
+let _modalType    = '';   // 'exercise' | 'study'
+let _modalIdx     = -1;   // task index, -1 = new task
+let _modalDate    = '';   // dateStr
+let _modalCalSync = false;
+
+function openModal(type, idx, dateStr) {
+  _modalType    = type;
+  _modalIdx     = idx;
+  _modalDate    = dateStr;
+  _modalCalSync = false;
+
+  const tasks = getTasksForDate(type, dateStr);
+  const task  = idx >= 0 ? tasks[idx] : null;
+
+  const isStudy = type === 'study';
+  document.getElementById('modalTitle').textContent  = task ? 'Edit ' + (isStudy ? 'Study' : 'Exercise') + ' Task' : 'Add ' + (isStudy ? 'Study Block' : 'Exercise');
+  document.getElementById('modalName').value         = task ? task.name : '';
+  document.getElementById('modalTime').value         = task ? task.time : '';
+  document.getElementById('modalSaveBtn').className  = 'modal-btn primary' + (isStudy ? ' study' : '');
+  document.getElementById('modalCalToggle').className = 'modal-cal-toggle';
+
+  // Show delete only when editing existing task
+  document.querySelector('.modal-btn.danger').style.display = task ? '' : 'none';
+
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('taskModal').classList.remove('open');
+}
+
+function toggleCalSync() {
+  _modalCalSync = !_modalCalSync;
+  const btn = document.getElementById('modalCalToggle');
+  btn.className = 'modal-cal-toggle' + (_modalCalSync ? ' on' : '');
+}
+
+function saveTaskEdit() {
+  const name = document.getElementById('modalName').value.trim();
+  const time = document.getElementById('modalTime').value.trim();
+  if (!name) { document.getElementById('modalName').focus(); return; }
+
+  const overrides = getTaskOverrides(_modalDate);
+  const key = _modalType + 'Tasks';
+
+  // Get current task list for this date
+  let tasks = getTasksForDate(_modalType, _modalDate);
+
+  if (_modalIdx >= 0) {
+    // Edit existing
+    tasks[_modalIdx] = { name, time };
+  } else {
+    // Add new
+    tasks.push({ name, time });
+  }
+
+  overrides[key] = tasks;
+  saveTaskOverrides(_modalDate, overrides);
+
+  // Push to Google Calendar if toggled on and signed in
+  if (_modalCalSync) {
+    pushEventToCalendar(name, time, _modalDate, _modalType);
+  }
+
+  closeModal();
+  renderExerciseTasks();
+  renderStudyTasks();
+  updateProgressCards();
+}
+
+function deleteTask() {
+  if (_modalIdx < 0) { closeModal(); return; }
+  const overrides = getTaskOverrides(_modalDate);
+  const key = _modalType + 'Tasks';
+  let tasks = getTasksForDate(_modalType, _modalDate);
+  tasks.splice(_modalIdx, 1);
+  overrides[key] = tasks;
+  saveTaskOverrides(_modalDate, overrides);
+  closeModal();
+  renderExerciseTasks();
+  renderStudyTasks();
+  updateProgressCards();
+}
+
+// Close modal on overlay click
+document.getElementById('taskModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('taskModal')) closeModal();
+});
+
+// ─── GOOGLE CALENDAR PUSH ────────────────────────────────────────
+
+function pushEventToCalendar(name, timeStr, dateStr, type) {
+  try {
+    const token = gapi?.client?.getToken();
+    if (!token) { alert('Sign in to Google Calendar first (Progress tab)'); return; }
+
+    // Parse time string like "11:00 – 12:30" or "8:30 – 11:00"
+    const parts = timeStr.replace(/–|-/g, '|').split('|').map(s => s.trim());
+    const startTime = parseTimeStr(parts[0], dateStr);
+    const endTime   = parts[1] ? parseTimeStr(parts[1], dateStr) : new Date(startTime.getTime() + 60*60*1000);
+
+    const event = {
+      summary: name,
+      colorId: type === 'exercise' ? '11' : '9', // tomato=11 (exercise), blueberry=9 (study)
+      start: { dateTime: startTime.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      end:   { dateTime: endTime.toISOString(),   timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+    };
+
+    gapi.client.calendar.events.insert({ calendarId: 'primary', resource: event })
+      .then(() => {
+        // Show brief confirmation
+        const btn = document.getElementById('modalSaveBtn');
+        if (btn) { const orig = btn.textContent; btn.textContent = 'Added to Cal!'; setTimeout(() => btn.textContent = orig, 2000); }
+      })
+      .catch(e => console.warn('Calendar push error:', e));
+  } catch(e) { console.warn('pushEventToCalendar error:', e); }
+}
+
+function parseTimeStr(str, dateStr) {
+  // "11:00" or "8:30" or "9:00 AM"
+  const clean = str.trim();
+  const m = clean.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return new Date(dateStr + 'T12:00:00');
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  if (clean.toLowerCase().includes('pm') && h < 12) h += 12;
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setHours(h, min, 0, 0);
+  return d;
+}
+
+// ─── WEEKLY SCORE ─────────────────────────────────────────────────
+
+function renderWeekScore() {
+  const container = document.getElementById('weekScoreCard');
+  if (!container) return;
+
+  const today = new Date();
+  const dow = today.getDay();
+  const diffToMonday = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday + (weekOffset * 7));
+
+  const state = loadState();
+  const todayStr = getToday();
+
+  let exercisePossible = 0, exerciseDone = 0;
+  let studyPossible    = 0, studyDone    = 0;
+  const missedDays = [];
+
+  const dayOrder = [1,2,3,4,5,6,0];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    if (dateStr > todayStr) continue; // don't score future days
+    if (dateStr < PLAN_START) continue;
+
+    const jsDay = dayOrder[i];
+    const dayName = DAYS[jsDay];
+    const tasks = getTasksForDate('exercise', dateStr);
+    const studyTasks = getTasksForDate('study', dateStr);
+    const data = state[dateStr] || {};
+
+    const exGoal  = tasks.filter(t => !t.name.toLowerCase().includes('rest')).length;
+    const stGoal  = studyTasks.length;
+    const exDone  = (data.exercise || []).length;
+    const stDone  = (data.study || []).length;
+
+    if (exGoal > 0) {
+      exercisePossible++;
+      if (exDone >= exGoal) exerciseDone++;
+      else missedDays.push({ day: dayName.slice(0,3), type: 'exercise', date: dateStr });
+    }
+    if (stGoal > 0) {
+      studyPossible++;
+      if (stDone >= stGoal) studyDone++;
+      else missedDays.push({ day: dayName.slice(0,3), type: 'study', date: dateStr });
+    }
+  }
+
+  const total    = exercisePossible + studyPossible;
+  const done     = exerciseDone + studyDone;
+  const pct      = total > 0 ? Math.round((done / total) * 100) : 0;
+  const grade    = pct >= 90 ? { label: 'Excellent', color: 'var(--accent3)' }
+                 : pct >= 75 ? { label: 'Good',      color: 'var(--gold)' }
+                 : pct >= 50 ? { label: 'OK',         color: 'var(--accent2)' }
+                 :             { label: 'Needs work', color: 'var(--accent1)' };
+
+  const weekLabel = weekOffset === 0 ? 'This week' : weekOffset === -1 ? 'Last week' : 'Week';
+
+  container.innerHTML = `
+    <div class="score-card">
+      <div class="score-ring-label">${weekLabel.toUpperCase()} · ${monday.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${new Date(monday.getTime()+6*86400000).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+      <div class="score-big">${pct}<span>/100</span></div>
+      <div class="score-grade" style="color:${grade.color}">${grade.label}</div>
+      <div class="score-breakdown">
+        <div class="score-item">
+          <div class="score-item-num" style="color:var(--accent1)">${exerciseDone}/${exercisePossible}</div>
+          <div class="score-item-label">EXERCISE DAYS</div>
+        </div>
+        <div class="score-item">
+          <div class="score-item-num" style="color:var(--accent2)">${studyDone}/${studyPossible}</div>
+          <div class="score-item-label">STUDY DAYS</div>
+        </div>
+      </div>
+      ${missedDays.length > 0 ? `
+      <div class="score-missed-list">
+        ${missedDays.map(m => `
+          <div class="score-missed-day">
+            <div class="score-missed-dot ${m.type}"></div>
+            <span>${m.day} — missed ${m.type}</span>
+          </div>`).join('')}
+      </div>` : '<div style="font-size:13px;color:var(--accent3);margin-top:14px;">Perfect week so far!</div>'}
+    </div>
+  `;
+}
+
+// ─── PUSH NOTIFICATIONS & SERVICE WORKER ─────────────────────────
+
+const AGENT_URL = window.TRACKER_CONFIG?.agentUrl || '';
+
+async function initPushNotifications() {
+  if (!AGENT_URL || AGENT_URL === 'YOUR_RAILWAY_URL') return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.log('Push not supported on this browser');
+    return;
+  }
+
+  try {
+    // Register service worker
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    console.log('Service worker registered');
+
+    // Listen for messages from service worker (notification taps)
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.type === 'AGENT_NOTIFICATION') {
+        showAgentBanner(event.data.data?.suggestion, event.data.data?.dayName);
+      }
+    });
+
+    // Check if already subscribed
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      console.log('Already subscribed to push');
+      return;
+    }
+
+    // Ask permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.log('Push permission denied');
+      return;
+    }
+
+    // Get VAPID public key from server
+    const keyRes = await fetch(AGENT_URL + '/api/vapid-public-key');
+    const { key } = await keyRes.json();
+
+    // Subscribe
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key)
+    });
+
+    // Send subscription to server
+    await fetch(AGENT_URL + '/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subscription)
+    });
+
+    console.log('Push subscription registered with agent');
+  } catch(e) {
+    console.warn('Push setup error:', e);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+function showAgentBanner(suggestion, dayName) {
+  const banner = document.getElementById('agentBanner');
+  const text   = document.getElementById('agentSuggestionText');
+  if (!banner || !text || !suggestion) return;
+  text.textContent = suggestion;
+  banner.style.display = '';
+  // Switch to today tab
+  switchTab('today');
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function dismissAgentBanner() {
+  const banner = document.getElementById('agentBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+// Check URL params — notification tap opens /?agent=1
+function checkAgentParam() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('agent') === '1') {
+    // Suggestion comes via postMessage from SW, but also check sessionStorage
+    const cached = sessionStorage.getItem('agentSuggestion');
+    if (cached) {
+      try {
+        const { suggestion, dayName } = JSON.parse(cached);
+        showAgentBanner(suggestion, dayName);
+        sessionStorage.removeItem('agentSuggestion');
+      } catch(e) {}
+    }
+  }
+}
+
+// ─── RIPPLE ───────────────────────────────────────────────────────
+function addRipple(el, e) {
+  const rect = el.getBoundingClientRect();
+  const r = document.createElement('div');
+  r.className = 'ripple';
+  const size = Math.max(rect.width, rect.height);
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size/2}px;top:${e.clientY - rect.top - size/2}px`;
+  el.appendChild(r);
+  setTimeout(() => r.remove(), 500);
+}
+</script>
+</body>
+</html>
