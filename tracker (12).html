@@ -1,0 +1,3906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Tracker">
+<meta name="theme-color" content="#F2F2F7">
+<!-- CSP removed: API key is domain-restricted, OAuth client has authorized origins -->
+<title>My Daily Tracker</title>
+<!-- System fonts — SF Pro on iOS/macOS, fallback to system-ui -->
+<style>
+  /* ── APPLE HEALTH LIGHT DESIGN SYSTEM ──────────────────────────
+     iOS Health palette: white surfaces, grouped grey bg, system blues
+     Typography: SF Pro (system) display / body
+  ────────────────────────────────────────────────────────────────*/
+  :root {
+    --bg:         #F2F2F7;        /* iOS grouped background        */
+    --bg-deep:    #E5E5EA;        /* slightly deeper grey          */
+    --surface:    #FFFFFF;        /* pure white card               */
+    --surface2:   #F9F9F9;        /* off-white panel               */
+    --orange:     #FF9500;        /* iOS orange                    */
+    --cognac:     #FF6B00;        /* deeper orange                 */
+    --chocolate:  #1C1C1E;        /* iOS near-black                */
+    --sand:       #8E8E93;        /* iOS secondary label           */
+    --sand-light: #C7C7CC;        /* iOS tertiary label            */
+    --gold:       #FF9F0A;        /* iOS yellow/amber              */
+    --gold-light: #FFD60A;        /* iOS yellow highlight          */
+    --sage:       #34C759;        /* iOS green                     */
+    --text:       #000000;        /* primary label                 */
+    --text-mid:   #3C3C43;        /* secondary label               */
+    --text-muted: #8E8E93;        /* tertiary label                */
+    --border:     rgba(60,60,67,0.1);
+    --border-med: rgba(60,60,67,0.18);
+    --radius:     12px;           /* iOS card rounding             */
+    --radius-lg:  16px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'SF Pro Text', 'SF Pro Display', Helvetica, sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow-x: hidden;
+    /* Subtle paper grain texture */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.018'/%3E%3C/svg%3E");
+  }
+
+  /* ── HEADER ─────────────────────────────────────────────────── */
+  .header {
+    padding: 56px 20px 20px;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    border-bottom: 0.5px solid var(--border-med);
+  }
+
+  /* Subtle top accent line */
+  .header::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--orange) 0%, var(--gold) 100%);
+  }
+
+  .header-date {
+    font-family: -apple-system, sans-serif;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .header-title {
+    font-family: -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.2;
+    color: var(--text);
+  }
+
+  .header-title em {
+    font-style: italic;
+    color: var(--text-mid);
+    font-weight: 600;
+  }
+
+  .streak-badge {
+    position: absolute;
+    bottom: 16px; right: 20px;
+    background: rgba(255,149,0,0.12);
+    border: 1px solid rgba(255,149,0,0.3);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    letter-spacing: 0;
+    font-weight: 500;
+    color: var(--orange);
+    text-transform: none;
+  }
+
+  /* ── TABS ───────────────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border-med);
+    padding: 0 4px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px 8px 11px;
+    text-align: center;
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .tab.active {
+    color: var(--orange);
+    border-bottom-color: var(--orange);
+  }
+
+  /* ── PANELS ─────────────────────────────────────────────────── */
+  .panel {
+    display: none;
+    padding: 24px 20px 120px;
+    animation: fadeUp 0.3s ease both;
+  }
+  .panel.active { display: block; }
+
+  /* ── SECTION LABELS ─────────────────────────────────────────── */
+  .section-label {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 24px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 0.5px;
+    background: var(--border-med);
+  }
+
+  /* ── PROGRESS CARDS ─────────────────────────────────────────── */
+  .progress-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .progress-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px 16px 16px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Progress fill — thin line at bottom like a luxury gauge */
+  .progress-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    width: 100%;
+    background: var(--border-med);
+  }
+
+  .progress-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    width: calc(var(--prog, 0) * 100%);
+    background: var(--orange);
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    z-index: 1;
+  }
+
+  .progress-card.study::before { background: var(--gold); }
+
+  .progress-card-num {
+    font-family: -apple-system, sans-serif;
+    font-weight: 300;
+    font-size: 40px;
+    line-height: 1;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .progress-card-label {
+    font-size: 12px;
+    letter-spacing: 0;
+    font-weight: 500;
+    text-transform: none;
+    color: var(--text-muted);
+  }
+
+  .progress-card-sub {
+    font-size: 11px;
+    color: var(--sand);
+    margin-top: 3px;
+    font-weight: 400;
+  }
+
+  /* ── TASK CARDS ─────────────────────────────────────────────── */
+  .task-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .task-card:active { transform: scale(0.99); background: var(--bg-deep); }
+
+  .task-card.done {
+    border-left-color: var(--sage);
+    opacity: 0.75;
+  }
+
+  .task-card.done .task-name { text-decoration: line-through; text-decoration-color: var(--sand); }
+
+  .check-circle {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border-med);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    background: transparent;
+  }
+
+  .task-card.done .check-circle {
+    background: var(--sage);
+    border-color: var(--sage);
+  }
+
+  .check-circle svg { opacity: 0; transition: opacity 0.2s; }
+  .task-card.done .check-circle svg { opacity: 1; }
+
+  .task-info { flex: 1; min-width: 0; }
+
+  .task-name {
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .task-time {
+    font-size: 12px;
+    letter-spacing: 0;
+    color: var(--text-muted);
+    margin-top: 3px;
+    font-weight: 400;
+  }
+
+  .task-type {
+    font-size: 11px;
+    letter-spacing: 0;
+    font-weight: 500;
+    text-transform: none;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .type-exercise {
+    background: rgba(200,82,26,0.08);
+    color: var(--orange);
+    border: 1px solid rgba(200,82,26,0.2);
+  }
+
+  .type-study {
+    background: rgba(184,134,11,0.08);
+    color: var(--gold);
+    border: 1px solid rgba(184,134,11,0.2);
+  }
+
+  .task-edit-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: var(--radius);
+    flex-shrink: 0;
+    transition: color 0.15s;
+    line-height: 1;
+  }
+
+  .task-edit-btn:active { color: var(--text); }
+
+  /* ── WEEK GRID ───────────────────────────────────────────────── */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .week-nav-btn {
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    color: var(--text-mid);
+    font-size: 18px;
+    width: 32px; height: 32px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-family: 'Jost', sans-serif;
+  }
+
+  .week-nav-btn:active { background: var(--bg-deep); }
+
+  .week-nav-label {
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .week-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .week-day-label {
+    font-size: 11px;
+    letter-spacing: 0;
+    font-weight: 500;
+    text-transform: none;
+    color: var(--text-muted);
+  }
+
+  .week-dot {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border-med);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: 'Jost', sans-serif;
+  }
+
+  .week-dot:active { transform: scale(0.9); }
+  .week-dot.today  { border-color: var(--orange); color: var(--orange); font-weight: 500; }
+  .week-dot.selected { background: var(--chocolate); border-color: var(--chocolate); color: var(--bg); }
+  .week-dot.complete { background: var(--sage); border-color: var(--sage); color: white; }
+  .week-dot.partial  { background: var(--sand-light); border-color: var(--sand); color: var(--cognac); }
+
+  /* ── ENERGY ──────────────────────────────────────────────────── */
+  .energy-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .energy-btn {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 12px 4px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Jost', sans-serif;
+  }
+
+  .energy-btn:active { transform: scale(0.96); }
+
+  .energy-btn.selected {
+    background: var(--chocolate);
+    border-color: var(--chocolate);
+    color: var(--bg);
+  }
+
+  .energy-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0;
+    font-weight: 500;
+    text-transform: none;
+    color: var(--text-muted);
+  }
+
+  .energy-btn.selected .energy-label { color: var(--sand-light); }
+
+  /* ── NOTES ───────────────────────────────────────────────────── */
+  .note-input {
+    width: 100%;
+    background: var(--surface);
+    border: 0.5px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 14px;
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    min-height: 100px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .note-input:focus { border-color: var(--sand); }
+  .note-input::placeholder { color: var(--sand); font-style: italic; }
+
+  .save-btn {
+    width: 100%;
+    background: var(--chocolate);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .save-btn:active { background: var(--cognac); }
+  .save-btn.study-btn { background: var(--cognac); }
+
+  /* ── STATS ───────────────────────────────────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 10px 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--sand-light);
+  }
+
+  .stat-num {
+    font-family: -apple-system, sans-serif;
+    font-size: 32px;
+    font-weight: 300;
+    display: block;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0;
+    font-weight: 500;
+    text-transform: none;
+    color: var(--text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* ── LOGS ────────────────────────────────────────────────────── */
+  .log-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .log-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .log-dot.study { background: var(--gold); }
+
+  .log-name {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .log-time {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  /* ── GOOGLE CALENDAR ─────────────────────────────────────────── */
+  .cal-sync-card {
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 4px;
+    border-top: 2px solid var(--orange);
+  }
+
+  .cal-sync-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+
+  .cal-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cal-dot.disconnected { background: var(--sand); }
+  .cal-dot.connected    { background: var(--sage); }
+  .cal-dot.syncing      { background: var(--gold-light); animation: pulse 1s infinite; }
+  .cal-dot.error        { background: var(--orange); }
+
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+  .cal-help {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+  }
+
+  .cal-events-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .cal-event-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--bg-deep);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    border-left: 2px solid var(--sand);
+  }
+
+  .cal-event-item.exercise { border-left-color: var(--orange); }
+  .cal-event-item.study    { border-left-color: var(--gold); }
+  .cal-event-item.conflict { border-left-color: var(--cognac); }
+
+  .cal-event-time  { font-size: 10px; color: var(--text-muted); white-space: nowrap; margin-top: 1px; font-weight: 300; }
+  .cal-event-title { font-size: 13px; color: var(--text); flex: 1; font-weight: 300; }
+
+  .cal-event-tag {
+    font-size: 7px;
+    padding: 3px 7px;
+    border-radius: 2px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .tag-study    { background: rgba(184,134,11,0.1); color: var(--gold); }
+  .tag-exercise { background: rgba(200,82,26,0.1);  color: var(--orange); }
+  .tag-conflict { background: rgba(139,58,16,0.1);  color: var(--cognac); }
+  .tag-other    { background: rgba(26,15,5,0.06);   color: var(--text-muted); }
+
+  .cal-sync-footer {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .cal-last-sync   { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+  .cal-resync-btn  {
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--orange); background: none; border: none;
+    font-family: 'Jost', sans-serif; cursor: pointer; padding: 0; font-weight: 500;
+  }
+
+  .cal-connect-btn {
+    background: var(--chocolate);
+    border: none;
+    border-radius: var(--radius);
+    padding: 13px 16px;
+    color: #fff;
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cal-connect-btn.full { width: 100%; }
+  .cal-connect-btn.outline {
+    background: transparent;
+    border: 1px solid var(--border-med);
+    color: var(--text-muted);
+    letter-spacing: 2px;
+  }
+  .cal-connect-btn:active { opacity: 0.8; }
+
+  /* ── BOTTOM NAV ──────────────────────────────────────────────── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 0.5px solid var(--border-med);
+    display: flex;
+    padding: 10px 0 26px;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: -apple-system, sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    padding: 4px 0;
+  }
+
+  .nav-btn.active { color: var(--orange); }
+  .nav-btn:nth-child(2).active { color: var(--orange); }
+  .nav-btn:nth-child(3).active { color: var(--orange); }
+  .nav-icon { font-size: 22px; line-height: 1; }
+
+  /* ── SCORE CARD ──────────────────────────────────────────────── */
+  .score-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px;
+    border: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .score-row:last-child { margin-bottom: 0; }
+
+  .score-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  .score-bar-track {
+    flex: 1;
+    height: 3px;
+    background: var(--border-med);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--orange);
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .score-bar-fill.study { background: var(--gold); }
+
+  .score-pct {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-mid);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .score-missed { margin-top: 10px; }
+  .score-missed-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .score-missed-items { display: flex; flex-wrap: wrap; gap: 6px; }
+  .score-missed-item {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 4px 10px;
+    font-size: 10px;
+    color: var(--text-mid);
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 300;
+  }
+
+  .score-missed-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--orange); flex-shrink: 0; }
+  .score-missed-dot.study { background: var(--gold); }
+
+  /* ── EDIT MODAL ──────────────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,15,5,0.65);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 28px 24px 40px;
+    width: 100%;
+    max-width: 430px;
+    animation: slideUp 0.28s cubic-bezier(0.4,0,0.2,1);
+    border-top: 3px solid var(--orange);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  .modal-title {
+    font-family: -apple-system, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 20px;
+    letter-spacing: 0;
+  }
+
+  .modal input, .modal textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 0.5px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .modal input:focus, .modal textarea:focus { border-color: var(--sand); }
+  .modal textarea { resize: vertical; min-height: 70px; line-height: 1.6; }
+
+  .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+
+  .modal-btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: var(--radius);
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .modal-btn.primary   { background: var(--chocolate); color: var(--bg); }
+  .modal-btn.secondary { background: transparent; border: 1px solid var(--border-med); color: var(--text-muted); }
+  .modal-btn.danger    { background: transparent; border: 1px solid rgba(200,82,26,0.3); color: var(--orange); }
+
+  /* ── STUDY LOG ───────────────────────────────────────────────── */
+  .study-log-item {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--gold);
+    position: relative;
+  }
+
+  .study-log-date {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .study-log-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--text);
+    line-height: 1.65;
+    font-style: italic;
+  }
+
+  /* ── MISC ────────────────────────────────────────────────────── */
+  .completed-msg {
+    text-align: center;
+    padding: 24px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(200,82,26,0.1);
+    animation: rippleAnim 0.5s ease-out forwards;
+    pointer-events: none;
+  }
+
+  @keyframes rippleAnim {
+    from { transform: scale(0); opacity: 1; }
+    to   { transform: scale(4); opacity: 0; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+
+  /* ── AT-A-GLANCE SUMMARY ─────────────────────────────────────── */
+  .summary-card {
+    background: var(--chocolate);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    margin-bottom: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(200,82,26,0.05) 0px, rgba(200,82,26,0.05) 1px,
+      transparent 1px, transparent 10px
+    );
+    pointer-events: none;
+  }
+
+  .summary-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .summary-pct {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 72px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--bg);
+  }
+
+  .summary-pct span {
+    font-size: 22px;
+    color: var(--sand);
+    margin-left: 2px;
+  }
+
+  .summary-grade {
+    font-family: 'Jost', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+  }
+
+  .summary-meta {
+    font-family: 'Jost', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 16px;
+  }
+
+  .summary-pills {
+    display: flex;
+    gap: 10px;
+  }
+
+  .summary-pill {
+    flex: 1;
+    background: rgba(250,247,242,0.07);
+    border-radius: 2px;
+    padding: 12px;
+    border-left: 2px solid var(--orange);
+  }
+
+  .summary-pill.study { border-left-color: var(--gold-light); }
+
+  .summary-pill-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--bg);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .summary-pill-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--sand);
+    font-weight: 500;
+  }
+
+  /* ── DAY BARS ────────────────────────────────────────────────── */
+  .day-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .day-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+
+  .day-bar-row.today-row {
+    border-color: var(--orange);
+    border-left: 3px solid var(--orange);
+  }
+
+  .day-bar-label {
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-mid);
+    width: 32px;
+    flex-shrink: 0;
+  }
+
+  .day-bar-row.today-row .day-bar-label { color: var(--orange); }
+
+  .day-bar-tracks {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .day-bar-track {
+    height: 4px;
+    background: var(--border-med);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .day-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .day-bar-fill.ex   { background: var(--orange); }
+  .day-bar-fill.study { background: var(--gold); }
+
+  .day-bar-status {
+    font-size: 14px;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+  }
+
+  .day-bar-note {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 400;
+    width: 60px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+
+  /* ── MODAL SHEET ─────────────────────────────────────────────── */
+  .modal-sheet {
+    background: var(--bg);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 28px 24px 40px;
+    width: 100%;
+    max-width: 430px;
+    animation: slideUp 0.28s cubic-bezier(0.4,0,0.2,1);
+    border-top: 3px solid var(--orange);
+  }
+
+  .modal-field {
+    margin-bottom: 14px;
+  }
+
+  .modal-label {
+    display: block;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .modal-input {
+    width: 100%;
+    background: var(--surface);
+    border: 0.5px solid var(--border-med);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-family: -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .modal-input:focus { border-color: var(--sand); }
+
+  .modal-cal-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-deep);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+
+  .modal-cal-label {
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  .modal-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  /* ── ACTIVITY LOG ────────────────────────────────────────────── */
+  .log-text {
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--text-mid);
+    flex: 1;
+    line-height: 1.5;
+  }
+
+
+
+  /* ── SYNC STATUS BADGE ───────────────────────────────────────── */
+  .sync-badge {
+    font-family: 'Jost', sans-serif;
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .sync-badge.syncing {
+    background: rgba(184,134,11,0.1);
+    color: var(--gold);
+    border: 1px solid rgba(184,134,11,0.25);
+    animation: pulse 1s infinite;
+  }
+  .sync-badge.synced {
+    background: rgba(122,154,122,0.1);
+    color: var(--sage);
+    border: 1px solid rgba(122,154,122,0.25);
+  }
+  .sync-badge.failed {
+    background: rgba(200,82,26,0.08);
+    color: var(--orange);
+    border: 1px solid rgba(200,82,26,0.2);
+    cursor: pointer;
+  }
+
+
+  /* ── TIME PICKER ROW ─────────────────────────────────────────── */
+  .time-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .time-input {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .time-sep {
+    color: var(--text-muted);
+    font-size: 16px;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .ampm-btn {
+    flex-shrink: 0;
+    min-width: 46px;
+    padding: 11px 0;
+    font-family: 'Jost', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .ampm-btn.pm {
+    background: var(--chocolate);
+    color: var(--bg);
+    border-color: var(--chocolate);
+  }
+  .ampm-btn.am {
+    background: var(--surface);
+    color: var(--orange);
+    border-color: var(--border-med);
+  }
+
+
+  /* ── CALENDAR LINK STRIP (Today panel) ───────────────────────── */
+  .cal-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-med);
+    border-left: 3px solid var(--orange);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 4px;
+  }
+  .cal-strip.linked {
+    border-left-color: var(--sage);
+    background: var(--bg);
+  }
+  .cal-strip-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+  .cal-strip-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .cal-strip-text {
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cal-strip-btn {
+    flex-shrink: 0;
+    background: var(--chocolate);
+    color: var(--bg);
+    border: none;
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    font-family: 'Jost', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .cal-strip-btn:active { opacity: 0.7; }
+  .cal-strip-btn.outline {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-med);
+  }
+
+</style>
+  <script>
+  // ── YOUR GOOGLE CREDENTIALS ───────────────────────────────────
+  // Paste your values from Google Cloud Console (2026Q1-Goal-tracker project)
+  // API key: APIs & Services → Credentials → your API key
+  // Client ID: APIs & Services → Credentials → your OAuth 2.0 Client ID
+  window.TRACKER_CONFIG = {
+    clientId:  '620799281009-8ff2ijecmd67jt3lip8m0udt015jej0b.apps.googleusercontent.com',
+    apiKey:    'AIzaSyBgQL5dFpwAlYIEUYx9wLgVJ0W4-zgL9Ec',
+    agentUrl:    'YOUR_RAILWAY_URL',
+  agentSecret: 'YOUR_AGENT_SECRET'   // same value as AGENT_SECRET in Railway env
+  };
+  // ─────────────────────────────────────────────────────────────
+  </script>
+  <!-- Google APIs — loaded eagerly so auth is ready before user taps -->
+  <script src="https://apis.google.com/js/api.js" onload="onGapiLoad()" defer></script>
+  <script src="https://accounts.google.com/gsi/client" onload="onGsiLoad()" defer></script>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+    <div class="header-date" id="headerDate"></div>
+    <div id="calHeaderPill" onclick="handleCalPillClick()" style="
+      display:inline-flex;align-items:center;gap:5px;
+      background:rgba(255,255,255,0.07);border:0.5px solid rgba(255,255,255,0.14);
+      border-radius:20px;padding:3px 9px 3px 7px;cursor:pointer;
+      font-family:'Jost',sans-serif;font-size:10px;letter-spacing:0.5px;
+      color:var(--sand);transition:background 0.15s;
+    ">
+      <span id="calPillDot" style="width:5px;height:5px;border-radius:50%;background:var(--border-med);flex-shrink:0;transition:background 0.3s"></span>
+      <span id="calPillText">Calendar</span>
+    </div>
+  </div>
+  <div class="header-title">Good morning,<br><em>let's crush it today.</em></div>
+  <div class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span> day streak</div>
+</div>
+
+<!-- ═══ FIRST-RUN ONBOARDING ════════════════════════════════════ -->
+<div id="calOnboarding" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center">
+  <div style="font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:4px;text-transform:uppercase;color:var(--orange);margin-bottom:32px">Goal Tracker</div>
+  <div style="font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:300;line-height:1.2;color:var(--text);margin-bottom:12px">Connect your<br><em>Calendar</em></div>
+  <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15px;color:var(--text-muted);line-height:1.7;margin-bottom:48px;max-width:280px">
+    Link Google Calendar once to sync your tasks and catch scheduling conflicts automatically.
+  </div>
+  <button onclick="handleAuthClick()" style="
+    width:100%;max-width:320px;background:var(--chocolate);border:none;
+    border-radius:var(--radius);padding:16px;color:var(--bg);
+    font-family:'Jost',sans-serif;font-size:10px;font-weight:500;
+    letter-spacing:3px;text-transform:uppercase;cursor:pointer;margin-bottom:14px
+  ">Link Google Calendar</button>
+  <button onclick="skipOnboarding()" style="
+    background:none;border:none;
+    font-family:'Jost',sans-serif;font-size:10px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--text-muted);cursor:pointer;padding:8px
+  ">Skip for now</button>
+</div>
+
+<!-- ═══ CALENDAR MANAGE SHEET (pill tap when connected) ═════════ -->
+<div id="calManageSheet" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;max-width:430px;margin:0 auto">
+  <div style="
+    background:var(--surface);border-top:1px solid var(--border-med);
+    border-radius:16px 16px 0 0;padding:24px 20px 32px;
+    box-shadow:0 -8px 40px rgba(26,15,5,0.3)
+  ">
+    <div style="width:36px;height:3px;background:var(--border-med);border-radius:2px;margin:0 auto 24px"></div>
+    <div style="font-family:'Jost',sans-serif;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:20px">Google Calendar</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px;background:rgba(122,154,122,0.08);border-radius:var(--radius);border:1px solid rgba(122,154,122,0.2);margin-bottom:20px">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--sage);flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-family:'Jost',sans-serif;font-size:13px;color:var(--text)" id="calManageEmail">—</div>
+        <div style="font-family:'Jost',sans-serif;font-size:10px;color:var(--text-muted);margin-top:3px" id="calManageSyncTime">—</div>
+      </div>
+    </div>
+    <button onclick="closeCalManageSheet();switchAccountClick()" style="
+      width:100%;background:none;border:1px solid var(--border-med);
+      border-radius:var(--radius);padding:13px;color:var(--text);
+      font-family:'Jost',sans-serif;font-size:10px;letter-spacing:2px;
+      text-transform:uppercase;cursor:pointer;margin-bottom:10px
+    ">Switch Account</button>
+    <button onclick="closeCalManageSheet();unlinkCalendar()" style="
+      width:100%;background:none;border:1px solid rgba(200,82,26,0.3);
+      border-radius:var(--radius);padding:13px;color:var(--orange);
+      font-family:'Jost',sans-serif;font-size:10px;letter-spacing:2px;
+      text-transform:uppercase;cursor:pointer
+    ">Unlink Calendar</button>
+  </div>
+</div>
+<div id="calManageOverlay" onclick="closeCalManageSheet()" style="display:none;position:fixed;inset:0;z-index:499;background:rgba(26,15,5,0.5)"></div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('today')">Today</div>
+  <div class="tab" onclick="switchTab('study')">Study</div>
+  <div class="tab" onclick="switchTab('progress')">Progress</div>
+</div>
+
+<!-- TODAY PANEL -->
+<div class="panel active" id="panel-today">
+
+  <!-- Agent notification banner (shown when notification tapped) -->
+  <div id="agentBanner" style="display:none;background:var(--surface);border:1px solid var(--border-med);border-top:2px solid var(--gold);border-radius:var(--radius);padding:18px;margin-bottom:4px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span style="font-size:18px;">✦</span>
+      <div style="font-family:'Jost',sans-serif;font-size:9px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:var(--gold);">Schedule Note</div>
+    </div>
+    <div id="agentSuggestionText" style="font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;font-weight:300;line-height:1.7;color:var(--text);margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="dismissAgentBanner()" style="flex:1;background:var(--chocolate);border:none;border-radius:var(--radius);padding:12px;color:var(--bg);font-family:'Jost',sans-serif;font-size:9px;font-weight:500;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;">Noted</button>
+      <button onclick="dismissAgentBanner()" style="flex:1;background:transparent;border:1px solid var(--border-med);border-radius:var(--radius);padding:12px;color:var(--text-muted);font-family:'Jost',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- ── CONFLICT SUGGESTIONS ──────────────────────────────── -->
+  <div id="conflictBanners"></div>
+
+  <div class="section-label">Overview</div>
+  <div class="progress-summary">
+    <div class="progress-card" id="exerciseCard" style="--prog:0">
+      <div class="progress-card-num" id="exerciseDone">0</div>
+      <div class="progress-card-label">Exercise done</div>
+      <div class="progress-card-sub" id="exerciseGoal">of 1 session</div>
+    </div>
+    <div class="progress-card study" id="studyCard" style="--prog:0">
+      <div class="progress-card-num" id="studyDone">0</div>
+      <div class="progress-card-label">Study blocks</div>
+      <div class="progress-card-sub" id="studyGoal">of 2 blocks</div>
+    </div>
+  </div>
+
+  <!-- Calendar state elements (hidden — UI moved to header pill + sheet) -->
+  <div style="display:none">
+    <span class="cal-dot disconnected" id="calDot"></span>
+    <span id="calStatusText"></span>
+    <div id="calSignedOut"></div>
+    <div id="calSignedIn"></div>
+    <div id="calConnectedAs"></div>
+    <span id="calEmailText"></span>
+    <div id="calSyncIndicator"></div>
+    <div id="calEvents"></div>
+    <span id="calLastSync"></span>
+  </div>
+
+  <div class="section-label">Week — tap a day to view its plan</div>
+  <div class="week-nav">
+    <button class="week-nav-btn" onclick="shiftWeek(-1, 'today')">&#8249;</button>
+    <span class="week-nav-label" id="weekNavLabelToday"></span>
+    <button class="week-nav-btn" onclick="shiftWeek(1, 'today')">&#8250;</button>
+  </div>
+  <div class="week-grid" id="weekGridToday"></div>
+
+  <div class="section-label" id="todayCalLabel" style="display:none">Today on Calendar</div>
+  <div id="todayCalEvents"></div>
+
+  <div class="section-label">Exercise</div>
+  <div id="exerciseTasks"></div>
+
+  <div class="section-label">Study</div>
+  <div id="studyTasksToday"></div>
+
+  <div class="section-label">How's your energy?</div>
+  <div class="energy-row" id="energyRow">
+    <button class="energy-btn" onclick="setEnergy(1, this)">😴<span class="energy-label">LOW</span></button>
+    <button class="energy-btn" onclick="setEnergy(2, this)">😐<span class="energy-label">OK</span></button>
+    <button class="energy-btn" onclick="setEnergy(3, this)">😊<span class="energy-label">GOOD</span></button>
+    <button class="energy-btn" onclick="setEnergy(4, this)">🔥<span class="energy-label">GREAT</span></button>
+  </div>
+
+  <div class="section-label">Quick note</div>
+  <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">Saved to this device only — a private daily journal for wins, struggles, or anything on your mind.</div>
+  <textarea class="note-input" id="todayNote" placeholder="How did today go? Any wins or struggles..."></textarea>
+  <button class="save-btn" onclick="saveNote()">Save Note</button>
+</div>
+
+<!-- STUDY PANEL -->
+<div class="panel" id="panel-study">
+
+  <div class="section-label">Today's Study Blocks</div>
+  <div id="studyTasks"></div>
+
+  <div class="section-label">What did you learn today?</div>
+  <textarea class="note-input" id="studyNote" placeholder="Key concepts, insights, questions to follow up on..."></textarea>
+  <button class="save-btn study-btn" onclick="saveStudyNote()">Save Learning Note</button>
+
+  <div class="section-label">Recent learnings</div>
+  <div id="studyLog"></div>
+</div>
+
+<!-- PROGRESS PANEL -->
+<div class="panel" id="panel-progress">
+
+  <!-- AT-A-GLANCE SUMMARY CARD -->
+  <div id="weekSummaryCard"></div>
+
+  <div class="section-label">This Week — Day by Day</div>
+  <div class="week-nav">
+    <button class="week-nav-btn" onclick="shiftWeek(-1, 'progress')">&#8249;</button>
+    <span class="week-nav-label" id="weekNavLabelProgress"></span>
+    <button class="week-nav-btn" onclick="shiftWeek(1, 'progress')">&#8250;</button>
+  </div>
+  <div id="weekDayBars"></div>
+
+  <div class="section-label">All-time</div>
+  <div class="stats-grid">
+    <div class="stat-box">
+      <span class="stat-num" id="totalExercise">0</span>
+      <div class="stat-label">Exercise Sessions</div>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num" id="totalStudy">0</span>
+      <div class="stat-label">Study Blocks</div>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num" id="bestStreak">0</span>
+      <div class="stat-label">Best Streak</div>
+    </div>
+  </div>
+
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Exercise Log</span>
+    <button onclick="syncHealthWorkouts()" id="healthSyncBtn" style="
+      font-family:'Jost',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+      background:none;border:1px solid var(--border-med);color:var(--text-muted);
+      padding:4px 10px;border-radius:var(--radius);cursor:pointer
+    ">⌚ Sync Health</button>
+  </div>
+  <div id="healthWorkoutLog"></div>
+  <div id="exerciseLog"></div>
+
+  <div class="section-label">Study Log</div>
+  <div id="progressStudyLog"></div>
+
+</div>
+
+<!-- TASK EDIT MODAL -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal-sheet">
+    <div class="modal-title" id="modalTitle">Edit Task</div>
+    <div class="modal-field">
+      <label class="modal-label">Task name</label>
+      <input class="modal-input" id="modalName" type="text" placeholder="e.g. Pilates" />
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Time</label>
+      <div class="time-row">
+        <input class="modal-input time-input" id="modalTimeStart" type="text" placeholder="11:00" inputmode="numeric" />
+        <button class="ampm-btn pm" id="modalAmPmStart" onclick="toggleAmPm('start');return false;">PM</button>
+        <span class="time-sep">–</span>
+        <input class="modal-input time-input" id="modalTimeEnd" type="text" placeholder="12:30" inputmode="numeric" />
+        <button class="ampm-btn pm" id="modalAmPmEnd" onclick="toggleAmPm('end');return false;">PM</button>
+      </div>
+      <input type="hidden" id="modalTime" />
+    </div>
+    <div class="modal-cal-row" id="modalCalStatus" style="display:none">
+      <span class="modal-cal-label" id="modalCalStatusText">📅 Will sync to Google Calendar</span>
+    </div>
+    <div class="modal-row">
+      <button class="modal-btn danger" onclick="deleteTask()">Delete</button>
+      <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn primary" id="modalSaveBtn" onclick="saveTaskEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('today')">
+    <span class="nav-icon">☀️</span>Today
+  </button>
+  <button class="nav-btn" onclick="switchTab('study')">
+    <span class="nav-icon">📖</span>Study
+  </button>
+  <button class="nav-btn" onclick="switchTab('progress')">
+    <span class="nav-icon">📊</span>Progress
+  </button>
+</nav>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const SHORT_DAYS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+const PLAN_START = '2026-02-23'; // Plan starts Monday Feb 23
+
+// ── GOOGLE CALENDAR CONFIG ─────────────────────────────────────
+// Credentials are loaded from config.js (which is NOT committed to GitHub)
+// See setup instructions for how to create config.js
+// Read credentials live at call time (not at parse time)
+function getClientId() { return window.TRACKER_CONFIG?.clientId || ''; }
+function getApiKey()   { return window.TRACKER_CONFIG?.apiKey   || ''; }
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+
+const EXERCISE_BY_DAY = {
+  Monday:    [{ name: 'Functional Training', time: '11:00 – 12:30' }],
+  Tuesday:   [{ name: 'Pilates', time: '11:00 – 12:30' }],
+  Wednesday: [{ name: 'Rest / Light Stretch', time: 'Optional' }],
+  Thursday:  [{ name: 'Yoga – Core & Abs Focus', time: '11:00 – 12:30' }],
+  Friday:    [{ name: 'Functional Training + Core', time: '11:00 – 12:30' }],
+  Saturday:  [{ name: 'Pilates + Yoga Flow', time: '6:00 – 7:00' }],
+  Sunday:    [{ name: 'Long Walk / Active Recovery', time: '6:00 – 7:00' }],
+};
+
+const STUDY_BY_DAY = {
+  Monday:    [{ name: 'AI Fundamentals / Course', time: '8:30 – 11:00' }, { name: 'PM Skills / Projects', time: '1:30 – 3:00' }],
+  Tuesday:   [{ name: 'ML Concepts / LLMs', time: '8:30 – 11:00' }, { name: 'Case Studies / Strategy', time: '1:30 – 3:00' }],
+  Wednesday: [{ name: 'Product Roadmapping / AI Tools', time: '8:30 – 11:30' }, { name: 'Quick AI session', time: '4:00 – 5:00' }],
+  Thursday:  [{ name: 'GenAI / Prompt Eng / APIs', time: '8:30 – 11:00' }, { name: 'Mock Interviews / Prep', time: '1:30 – 3:00' }],
+  Friday:    [{ name: 'Capstone / Portfolio Projects', time: '8:30 – 11:00' }, { name: 'Networking + Job Apps', time: '1:30 – 3:00' }],
+  Saturday:  [{ name: 'Light AI Study / Reading', time: '9:00 – 10:00' }, { name: 'Interview Prep', time: '10:30 – 11:30' }],
+  Sunday:    [{ name: 'AI Study / Weekly Review', time: '9:30 – 11:00' }],
+};
+
+// ─── STATE ───────────────────────────────────────────────────────
+function loadState() {
+  try {
+    const raw = localStorage.getItem('trackerState');
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+function saveState(state) {
+  try { localStorage.setItem('trackerState', JSON.stringify(state)); } catch(e) { console.warn('Storage unavailable:', e); }
+}
+
+function getToday() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Active date — defaults to today, changes when user taps a week dot
+let selectedDate = getToday();
+let weekOffset = 0; // 0 = current week, -1 = last week, +1 = next week
+
+function getActiveDate() {
+  return selectedDate;
+}
+
+function setActiveDate(dateStr) {
+  selectedDate = dateStr;
+  // Update header to reflect selected day
+  const isToday = dateStr === getToday();
+  const d = new Date(dateStr + 'T12:00:00');
+  const opts = { weekday: 'long', month: 'long', day: 'numeric' };
+  const label = isToday ? 'TODAY' : d.toLocaleDateString('en-US', opts).toUpperCase();
+  const headerDate = document.getElementById('headerDate');
+  if (headerDate) headerDate.textContent = label;
+  const headerTitle = document.querySelector('.header-title');
+  if (headerTitle) {
+    if (isToday) {
+      const hour = new Date().getHours();
+      const greet = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+      headerTitle.innerHTML = greet + '<br><em>let\'s crush it today.</em>';
+    } else {
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+      headerTitle.innerHTML = 'Viewing <em>' + dayName + '</em>';
+    }
+  }
+  // Re-render everything for the new date
+  renderExerciseTasks();
+  renderStudyTasks();
+  updateProgressCards();
+  restoreEnergy();
+  restoreNotes();
+  renderWeekGrid();
+}
+
+function getDayData(dateStr) {
+  const state = loadState();
+  const d = state[dateStr] || {};
+  return {
+    exercise: Array.isArray(d.exercise) ? d.exercise : [],
+    study: Array.isArray(d.study) ? d.study : [],
+    energy: d.energy || 0,
+    note: d.note || '',
+    studyNote: d.studyNote || ''
+  };
+}
+
+function saveDayData(dateStr, data) {
+  const state = loadState();
+  state[dateStr] = data;
+  saveState(state);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // ── DUMMY DATA ──────────────────────────────────────────────
+  const _today = getToday();
+  const _state = loadState();
+  if (!_state[_today]) {
+    _state[_today] = {
+      exercise: [0],           // first exercise task checked off
+      study: [],
+      energy: 3,               // "Good" energy
+      note: 'Got my 30 min in this morning — felt great! Core was tough but pushed through.',
+      studyNote: ''
+    };
+    if (!_state._log) _state._log = [];
+    _state._log.unshift({
+      type: 'exercise',
+      name: 'Functional Training (30 min)',
+      time: '11:30 AM',
+      date: _today
+    });
+    saveState(_state);
+  }
+  // ── END DUMMY DATA ──────────────────────────────────────────
+
+  updateHeader();
+  renderExerciseTasks();
+  renderStudyTasks();
+  renderWeekGrid();
+  renderStats();
+  renderStudyLog();
+  renderProgressLog();
+  restoreEnergy();
+  restoreNotes();
+  updateProgressCards();
+  updateStreak();
+  initCalendar();
+  initPushNotifications();
+  checkAgentParam();
+
+  // First-run: show onboarding if calendar never linked
+  if (!loadConnectedEmail() && !sessionStorage.getItem('calOnboardingSkipped')) {
+    setTimeout(showCalOnboarding, 400); // slight delay so app renders first
+  }
+});
+
+function updateHeader() {
+  const now = new Date();
+  const opts = { weekday: 'long', month: 'long', day: 'numeric' };
+  document.getElementById('headerDate').textContent = now.toLocaleDateString('en-US', opts).toUpperCase();
+  const hour = now.getHours();
+  const greet = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+  document.querySelector('.header-title').innerHTML = `${greet}<br><em>let's crush it today.</em>`;
+}
+
+// ─── EXERCISE TASKS ───────────────────────────────────────────────
+function renderExerciseTasks() {
+  const activeDate = getActiveDate();
+  const tasks = getTasksForDate('exercise', activeDate);
+  const data = getDayData(activeDate);
+  const container = document.getElementById('exerciseTasks');
+  if (!container) return;
+  container.innerHTML = '';
+
+  tasks.forEach((task, i) => {
+    const done = data.exercise.includes(i);
+    const card = document.createElement('div');
+    card.className = 'task-card' + (done ? ' done' : '');
+    card.innerHTML = `
+      <div class="check-circle">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2.5 7L5.5 10L11.5 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="task-info">
+        <div class="task-name">${task.name}</div>
+        <div class="task-time">${task.time}</div>
+      </div>
+      <button class="task-edit-btn" title="Edit task">✎</button>
+    `;
+    // Check tap vs edit button
+    card.querySelector('.task-edit-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openModal('exercise', i, activeDate);
+    });
+    card.addEventListener('click', (e) => {
+      addRipple(card, e);
+      toggleExercise(i);
+    });
+    container.appendChild(card);
+  });
+
+  if (tasks.length === 0) {
+    container.innerHTML = '<div class="completed-msg">Rest day — enjoy it!</div>';
+  }
+  // Add task button
+  // Use a stable wrapper div so re-renders don't duplicate the button
+  let addBtnWrap = document.getElementById('exerciseAddBtn');
+  if (!addBtnWrap) {
+    addBtnWrap = document.createElement('div');
+    addBtnWrap.id = 'exerciseAddBtn';
+    container.parentNode.insertBefore(addBtnWrap, container.nextSibling);
+  }
+  addBtnWrap.innerHTML = '';
+  const addBtn = document.createElement('button');
+  addBtn.className = 'cal-connect-btn full outline';
+  addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;';
+  addBtn.textContent = '+ Add exercise';
+  addBtn.onclick = () => openModal('exercise', -1, activeDate);
+  addBtnWrap.appendChild(addBtn);
+}
+
+function toggleExercise(idx) {
+  const today = getActiveDate();
+  const data = getDayData(today);
+  const pos = data.exercise.indexOf(idx);
+  if (pos === -1) {
+    data.exercise.push(idx);
+    logActivity('exercise', EXERCISE_BY_DAY[DAYS[new Date().getDay()]][idx]?.name);
+  } else {
+    data.exercise.splice(pos, 1);
+  }
+  saveDayData(today, data);
+  renderExerciseTasks();
+  updateProgressCards();
+  renderWeekGrid();
+  renderStats();
+  renderProgressLog();
+  renderWeekScore();
+  updateStreak();
+}
+
+// ─── STUDY TASKS ──────────────────────────────────────────────────
+function renderStudyTasks() {
+  const activeDate = getActiveDate();
+  const tasks = getTasksForDate('study', activeDate);
+  const data = getDayData(activeDate);
+
+  // Render into both Today panel and Study panel
+  ['studyTasks', 'studyTasksToday'].forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (tasks.length === 0) {
+      container.innerHTML = '<div class="completed-msg">No study scheduled — tap + to add one.</div>';
+    }
+
+    tasks.forEach((task, i) => {
+      const done = data.study.includes(i);
+      const card = document.createElement('div');
+      card.className = 'task-card' + (done ? ' done' : '');
+      card.innerHTML = `
+        <div class="check-circle">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2.5 7L5.5 10L11.5 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="task-info">
+          <div class="task-name">${task.name}</div>
+          <div class="task-time">${task.time}</div>
+        </div>
+        <button class="task-edit-btn" title="Edit task">✎</button>
+      `;
+      card.querySelector('.task-edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openModal('study', i, activeDate);
+      });
+      card.addEventListener('click', (e) => {
+        addRipple(card, e);
+        toggleStudy(i);
+      });
+      container.appendChild(card);
+    });
+    // Add study button (only in studyTasksToday to avoid duplication)
+    if (containerId === 'studyTasksToday') {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'cal-connect-btn full outline';
+      addBtn.style.cssText = 'margin-top:8px;width:100%;font-size:12px;';
+      addBtn.textContent = '+ Add study block';
+      addBtn.onclick = () => openModal('study', -1, activeDate);
+      container.appendChild(addBtn);
+    }
+  });
+}
+
+function toggleStudy(idx) {
+  const today = getActiveDate();
+  const data = getDayData(today);
+  const pos = data.study.indexOf(idx);
+  if (pos === -1) {
+    data.study.push(idx);
+    logActivity('study', STUDY_BY_DAY[DAYS[new Date().getDay()]][idx]?.name);
+  } else {
+    data.study.splice(pos, 1);
+  }
+  saveDayData(today, data);
+  renderStudyTasks();
+  updateProgressCards();
+  renderWeekGrid();
+  renderStats();
+  renderStudyLog();
+  renderProgressLog();
+  renderWeekScore();
+  updateStreak();
+}
+
+// ─── PROGRESS CARDS ───────────────────────────────────────────────
+function updateProgressCards() {
+  const activeDate = getActiveDate();
+  const data = getDayData(activeDate);
+
+  const exTotal = getTasksForDate('exercise', activeDate).length || 1;
+  const exDone = data.exercise.length;
+  const exDoneEl = document.getElementById('exerciseDone');
+  if (!exDoneEl) return;
+  exDoneEl.textContent = exDone;
+  const exGoalEl = document.getElementById('exerciseGoal');
+  const exCard   = document.getElementById('exerciseCard');
+  if (exGoalEl) exGoalEl.textContent = `of ${exTotal} session${exTotal > 1 ? 's' : ''}`;
+  if (exCard)   exCard.style.setProperty('--prog', Math.min(exDone / exTotal, 1));
+
+  const stTotal  = getTasksForDate('study', activeDate).length || 1;
+  const stDone   = data.study.length;
+  const stDoneEl = document.getElementById('studyDone');
+  const stGoalEl = document.getElementById('studyGoal');
+  const stCard   = document.getElementById('studyCard');
+  if (stDoneEl) stDoneEl.textContent = stDone;
+  if (stGoalEl) stGoalEl.textContent = `of ${stTotal} block${stTotal > 1 ? 's' : ''}`;
+  if (stCard)   stCard.style.setProperty('--prog', Math.min(stDone / stTotal, 1));
+}
+
+// ─── WEEK GRID ────────────────────────────────────────────────────
+function renderWeekGrid() {
+  _renderWeekGridInto('weekGridToday');
+}
+
+function shiftWeek(dir, panel) {
+  weekOffset += dir;
+  renderWeekGrid();
+  renderWeekScore();
+}
+
+function _renderWeekGridInto(gridId) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  const today = new Date();
+  const todayStr = getToday();
+  // Find Monday of the offset week
+  const dow = today.getDay();
+  const diffToMonday = (dow === 0) ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday + (weekOffset * 7));
+
+  // Update nav labels
+  const labelId = 'weekNavLabelToday';
+  const navLabel = document.getElementById(labelId);
+  if (navLabel) {
+    if (weekOffset === 0) {
+      navLabel.textContent = 'This week';
+    } else if (weekOffset === -1) {
+      navLabel.textContent = 'Last week';
+    } else if (weekOffset === 1) {
+      navLabel.textContent = 'Next week';
+    } else {
+      const mStr = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const sun = new Date(monday); sun.setDate(monday.getDate() + 6);
+      const sStr = sun.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      navLabel.textContent = mStr + ' – ' + sStr;
+    }
+  }
+
+  const state = loadState();
+  grid.innerHTML = '';
+
+  // Display Mon(1) Tue(2) Wed(3) Thu(4) Fri(5) Sat(6) Sun(0)
+  const dayOrder = [1,2,3,4,5,6,0];
+  const shortLabels = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const jsDay = dayOrder[i];
+    const dayName = DAYS[jsDay];
+    const dayData = state[dateStr];
+    const exGoal = getTasksForDate('exercise', dateStr).filter(t => !t.name.toLowerCase().includes('rest')).length;
+    const stGoal = getTasksForDate('study', dateStr).length;
+    const exDone = dayData?.exercise?.length || 0;
+    const stDone = dayData?.study?.length || 0;
+    const isToday = dateStr === todayStr;
+    const isFuture = dateStr > todayStr;
+    const beforePlan = dateStr < PLAN_START;
+
+    let cls = 'week-dot';
+    if (dateStr === selectedDate) cls += ' selected';
+    else if (isToday) cls += ' today';
+    else if (!isFuture && !beforePlan && exGoal > 0 && stGoal > 0 && exDone >= exGoal && stDone >= stGoal) cls += ' complete';
+    else if (!isFuture && !beforePlan && (exDone > 0 || stDone > 0)) cls += ' partial';
+
+    const col = document.createElement('div');
+    col.className = 'week-day';
+
+    const dot = document.createElement('div');
+    dot.className = cls;
+    dot.textContent = d.getDate();
+    dot.dataset.date = dateStr;
+    dot.addEventListener('click', () => {
+      selectedDate = dateStr;
+      renderWeekGrid();
+      renderExerciseTasks();
+      renderStudyTasks();
+      updateProgressCards();
+      restoreEnergy();
+      restoreNotes();
+      if (_conflictAllEvents.length > 0) renderConflictBanners(_conflictAllEvents);
+      // Switch to Today tab so user sees the updated plan
+      switchTab('today');
+      // Update header date label
+      const isActiveTdy = dateStr === todayStr;
+      const headerDate = document.getElementById('headerDate');
+      if (headerDate) {
+        if (isActiveTdy) {
+          headerDate.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+        } else {
+          headerDate.textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+        }
+      }
+      const headerTitle = document.querySelector('.header-title');
+      if (headerTitle) {
+        if (isActiveTdy) {
+          const hour = new Date().getHours();
+          const greet = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+          headerTitle.innerHTML = greet + '<br><em>let\'s crush it today.</em>';
+        } else {
+          const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+          headerTitle.innerHTML = 'Viewing <em>' + dayName + '</em>';
+        }
+      }
+    });
+
+    const label = document.createElement('div');
+    label.className = 'week-day-label';
+    label.textContent = shortLabels[i];
+
+    col.appendChild(label);
+    col.appendChild(dot);
+    grid.appendChild(col);
+  }
+}
+
+// ─── STATS ────────────────────────────────────────────────────────
+function renderStats() {
+  const state = loadState();
+  let totalEx = 0, totalSt = 0;
+  Object.values(state).forEach(d => {
+    if (d.exercise) totalEx += d.exercise.length;
+    if (d.study) totalSt += d.study.length;
+  });
+  const elEx = document.getElementById('totalExercise');
+  const elSt = document.getElementById('totalStudy');
+  const elBs = document.getElementById('bestStreak');
+  if (elEx) elEx.textContent = totalEx;
+  if (elSt) elSt.textContent = totalSt;
+  if (elBs) elBs.textContent = calculateBestStreak(state);
+}
+
+function calculateBestStreak(state) {
+  try {
+    const dates = Object.keys(state).filter(k => k.match(/^\d{4}-\d{2}-\d{2}$/)).sort();
+    let best = 0, cur = 0, prev = null;
+    dates.forEach(d => {
+      const data = state[d] || {};
+      const hasActivity = (data.exercise?.length > 0) || (data.study?.length > 0);
+      if (!hasActivity) { cur = 0; prev = null; return; }
+      cur = (!prev || (new Date(d) - new Date(prev)) / 86400000 > 1) ? 1 : cur + 1;
+      best = Math.max(best, cur);
+      prev = d;
+    });
+    return best;
+  } catch(e) { return 0; }
+}
+
+function updateStreak() {
+  try {
+    const state = loadState();
+    const today = getToday();
+    let streak = 0;
+    let d = new Date();
+    for (let i = 0; i < 366; i++) {
+      const dateStr = d.toISOString().split('T')[0];
+      const data = state[dateStr] || {};
+      const hasActivity = (data.exercise?.length > 0) || (data.study?.length > 0);
+      if (!hasActivity && dateStr !== today) break;
+      if (hasActivity) streak++;
+      d.setDate(d.getDate() - 1);
+    }
+    const sc = document.getElementById('streakCount');
+    const bs = document.getElementById('bestStreak');
+    if (sc) sc.textContent = streak;
+    if (bs) bs.textContent = calculateBestStreak(state);
+  } catch(e) { console.warn('updateStreak error:', e); }
+}
+
+// ─── ENERGY ───────────────────────────────────────────────────────
+function setEnergy(val, btn) {
+  document.querySelectorAll('.energy-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const today = getActiveDate();
+  const data = getDayData(today);
+  data.energy = val;
+  saveDayData(today, data);
+}
+
+function restoreEnergy() {
+  const data = getDayData(getActiveDate());
+  if (data.energy) {
+    const btns = document.querySelectorAll('.energy-btn');
+    if (btns[data.energy - 1]) btns[data.energy - 1].classList.add('selected');
+  }
+}
+
+// ─── NOTES ────────────────────────────────────────────────────────
+function saveNote() {
+  const today = getActiveDate();
+  const data = getDayData(today);
+  const _noteEl = document.getElementById('todayNote'); data.note = _noteEl ? _noteEl.value : '';
+  saveDayData(today, data);
+  flashSave(document.querySelector('.save-btn:not(.study-btn)'));
+}
+
+function saveStudyNote() {
+  const today = getActiveDate();
+  const data = getDayData(today);
+  const _snEl = document.getElementById('studyNote'); data.studyNote = _snEl ? _snEl.value : '';
+  saveDayData(today, data);
+  logActivity('study-note', document.getElementById('studyNote').value.slice(0, 60));
+  renderStudyLog();
+  flashSave(document.querySelector('.study-btn'));
+}
+
+function restoreNotes() {
+  const data = getDayData(getActiveDate());
+  const _tnEl = document.getElementById('todayNote'); if (_tnEl) _tnEl.value = data.note || '';
+  const _snrEl = document.getElementById('studyNote'); if (_snrEl) _snrEl.value = data.studyNote || '';
+}
+
+function flashSave(btn) {
+  const orig = btn.textContent;
+  btn.textContent = 'Saved!';
+  btn.style.opacity = '0.7';
+  setTimeout(() => { btn.textContent = orig; btn.style.opacity = '1'; }, 1500);
+}
+
+// ─── ACTIVITY LOG ─────────────────────────────────────────────────
+function logActivity(type, name) {
+  try {
+    const state = loadState();
+    if (!state._log) state._log = [];
+    if (!name || !name.trim()) return; // don't log blank entries
+    state._log.unshift({ type, name: name.trim(), time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), date: getToday() });
+    if (state._log.length > 50) state._log = state._log.slice(0, 50);
+    saveState(state);
+  } catch(e) { console.warn('logActivity error:', e); }
+}
+
+function renderStudyLog() {
+  const state = loadState();
+  const log = (state._log || []).filter(l => l.type === 'study-note').slice(0, 5);
+  const container = document.getElementById('studyLog');
+  container.innerHTML = '';
+  if (log.length === 0) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No learning notes yet — save one above!</div>';
+    return;
+  }
+  log.forEach(l => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div class="log-dot study"></div><div class="log-text">${l.name}${l.name.length >= 60 ? '...' : ''}</div><div class="log-time">${l.date}</div>`;
+    container.appendChild(div);
+  });
+}
+
+
+// ─── APPLE HEALTH SYNC ────────────────────────────────────────────
+
+let _healthWorkouts = {}; // cached from Railway
+
+async function syncHealthWorkouts() {
+  const url = window.TRACKER_CONFIG?.agentUrl;
+  const secret = window.TRACKER_CONFIG?.agentSecret;
+  if (!url || url === 'YOUR_RAILWAY_URL' || !secret) {
+    showCalSyncToast('Set agentUrl + agentSecret in TRACKER_CONFIG to sync Health data');
+    return;
+  }
+
+  const btn = document.getElementById('healthSyncBtn');
+  if (btn) { btn.textContent = '⌚ Syncing…'; btn.disabled = true; }
+
+  try {
+    // Fetch last 30 days of workouts
+    const from = new Date(); from.setDate(from.getDate() - 30);
+    const fromStr = from.toISOString().split('T')[0];
+    const res = await fetch(`${url}/api/workouts?secret=${encodeURIComponent(secret)}&from=${fromStr}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    _healthWorkouts = data.workouts || {};
+
+    // Persist in localStorage so it survives page reload
+    try { localStorage.setItem('_healthWorkouts', JSON.stringify(_healthWorkouts)); } catch(_) {}
+
+    const count = Object.values(_healthWorkouts).flat().length;
+    showCalSyncToast(`⌚ Synced ${count} workout${count !== 1 ? 's' : ''} from Apple Health`);
+    renderHealthLog();
+  } catch(e) {
+    console.warn('Health sync error:', e);
+    showCalSyncToast('Health sync failed — check Railway is running');
+  } finally {
+    if (btn) { btn.textContent = '⌚ Sync Health'; btn.disabled = false; }
+  }
+}
+
+function loadCachedHealthWorkouts() {
+  try {
+    const raw = localStorage.getItem('_healthWorkouts');
+    if (raw) _healthWorkouts = JSON.parse(raw);
+  } catch(_) {}
+}
+
+function renderHealthLog() {
+  const container = document.getElementById('healthWorkoutLog');
+  if (!container) return;
+
+  // Flatten and sort newest first
+  const entries = [];
+  for (const [date, workouts] of Object.entries(_healthWorkouts)) {
+    for (const w of workouts) entries.push({ date, ...w });
+  }
+  entries.sort((a, b) => b.date.localeCompare(a.date));
+  const recent = entries.slice(0, 10);
+
+  if (recent.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const WORKOUT_EMOJI = {
+    'Running': '🏃', 'Walking': '🚶', 'Cycling': '🚴', 'Swimming': '🏊',
+    'Yoga': '🧘', 'Pilates': '🧘', 'Strength': '🏋️', 'HIIT': '🔥',
+    'Functional': '💪', 'Core': '💪', 'Dance': '💃', 'Hiking': '⛰️',
+    'Elliptical': '🏃', 'default': '⌚'
+  };
+
+  function workoutEmoji(type) {
+    for (const [key, emoji] of Object.entries(WORKOUT_EMOJI)) {
+      if (type.toLowerCase().includes(key.toLowerCase())) return emoji;
+    }
+    return WORKOUT_EMOJI.default;
+  }
+
+  function fmtDate(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  container.innerHTML = `
+    <div style="margin-bottom:6px;font-family:'Jost',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--orange)">
+      ⌚ From Apple Health
+    </div>
+    ${recent.map(w => {
+      const emoji = workoutEmoji(w.workoutType);
+      const details = [
+        w.durationMins ? `${w.durationMins} min` : null,
+        w.calories     ? `${w.calories} cal`     : null,
+        w.heartRateAvg ? `${w.heartRateAvg} bpm avg` : null
+      ].filter(Boolean).join(' · ');
+      return `
+        <div class="log-item" style="border-left:2px solid var(--orange);padding-left:10px">
+          <div style="font-size:15px;flex-shrink:0">${emoji}</div>
+          <div class="log-text" style="flex:1">
+            <div>${w.workoutType}</div>
+            ${details ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${details}</div>` : ''}
+          </div>
+          <div class="log-time">${fmtDate(w.date)}</div>
+        </div>`;
+    }).join('')}
+  `;
+}
+
+// Load cached on startup
+loadCachedHealthWorkouts();
+
+function renderProgressLog() {
+  const state = loadState();
+  const exLog = (state._log || []).filter(l => l.type === 'exercise' && l.name && l.name.trim()).slice(0, 8);
+  const stLog = (state._log || []).filter(l => l.type === 'study' && l.name && l.name.trim()).slice(0, 8);
+
+  renderHealthLog();
+  const exContainer = document.getElementById('exerciseLog');
+  exContainer.innerHTML = '';
+  if (exLog.length === 0) {
+    exContainer.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No sessions logged yet.</div>';
+  } else {
+    exLog.forEach(l => {
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.innerHTML = `<div class="log-dot exercise"></div><div class="log-text">${l.name}</div><div class="log-time">${l.date} ${l.time}</div>`;
+      exContainer.appendChild(div);
+    });
+  }
+
+  const stContainer = document.getElementById('progressStudyLog');
+  stContainer.innerHTML = '';
+  if (stLog.length === 0) {
+    stContainer.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:10px 0">No study blocks logged yet.</div>';
+  } else {
+    stLog.forEach(l => {
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.innerHTML = `<div class="log-dot study"></div><div class="log-text">${l.name}</div><div class="log-time">${l.date} ${l.time}</div>`;
+      stContainer.appendChild(div);
+    });
+  }
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  const tabIdx = ['today','study','progress'].indexOf(name);
+  if (tabIdx !== -1) {
+    document.querySelectorAll('.tab')[tabIdx]?.classList.add('active');
+    document.querySelectorAll('.nav-btn')[tabIdx]?.classList.add('active');
+  }
+
+  const panel = document.getElementById('panel-' + name);
+  if (panel) panel.classList.add('active');
+
+  if (name === 'progress') { renderWeekGrid(); renderStats(); renderProgressLog(); renderWeekScore(); }
+  if (name === 'today')    { renderWeekGrid(); }
+  if (name === 'study')    { renderStudyLog(); }
+}
+
+// ─── GOOGLE CALENDAR OAUTH ───────────────────────────────────────
+
+// ── Token persistence ────────────────────────────────────────────
+function saveToken(token) {
+  try {
+    const t = Object.assign({}, token, { expires_at: Date.now() + ((token.expires_in || 3600) * 1000) });
+    localStorage.setItem('gcalToken', JSON.stringify(t));
+  } catch(e) {}
+}
+function loadSavedToken() {
+  try {
+    const t = JSON.parse(localStorage.getItem('gcalToken') || 'null');
+    if (!t || !t.access_token) return null;
+    if (t.expires_at && Date.now() > t.expires_at) { clearToken(); return null; }
+    return t;
+  } catch(e) { return null; }
+}
+function clearToken() {
+  try { localStorage.removeItem('gcalToken'); } catch(e) {}
+}
+function saveConnectedEmail(email) {
+  try { localStorage.setItem('gcalEmail', email); } catch(e) {}
+}
+function loadConnectedEmail() {
+  try { return localStorage.getItem('gcalEmail') || ''; } catch(e) { return ''; }
+}
+function clearConnectedEmail() {
+  try { localStorage.removeItem('gcalEmail'); } catch(e) {}
+}
+
+// ── Google API init ───────────────────────────────────────────────
+let tokenClient = null;
+let gapiReady = false;
+let gsiReady  = false;
+
+// Safe accessor — never throws "gapi is not defined"
+function safeGapi()   { return (typeof gapi   !== 'undefined') ? gapi   : null; }
+function safeGoogle() { return (typeof google !== 'undefined') ? google : null; }
+
+// Called by gapi script onload via: gapi.load callback
+async function initGapiClient() {
+  try {
+    await gapi.client.init({ apiKey: getApiKey() });
+    // Load Calendar API discovery doc separately (more reliable)
+    await gapi.client.load('calendar', 'v3');
+    gapiReady = true;
+    console.log('GAPI ready');
+    const _b = document.getElementById('googleSignInBtn');
+    if (_b && gsiReady) { _b.textContent = 'Link Calendar'; setCalStatus('disconnected', 'Ready to connect'); }
+    // Restore saved session if GSI also ready
+    const saved = loadSavedToken();
+    if (saved && gsiReady) {
+      safeGapi()?.client?.setToken(saved);
+      restoreSignedInState();
+    } else if (saved) {
+      // GSI not ready yet — will be handled in initGsi
+    }
+  } catch(e) {
+    console.error('GAPI init failed:', e);
+    setCalStatus('error', 'Google API error: ' + (e.message || e.result?.error?.message || 'check your API key'));
+  }
+}
+
+function initGsi() {
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: getClientId(),
+      scope: SCOPES,
+      callback: onTokenResponse
+    });
+    gsiReady = true;
+    const _b2 = document.getElementById('googleSignInBtn');
+    if (_b2 && gapiReady) { _b2.textContent = 'Link Calendar'; setCalStatus('disconnected', 'Ready to connect'); }
+    // If gapi already ready and we have a saved token, restore
+    const saved = loadSavedToken();
+    if (saved && gapiReady) {
+      safeGapi()?.client?.setToken(saved);
+      restoreSignedInState();
+    }
+  } catch(e) {
+    console.error('GSI init failed:', e);
+    setCalStatus('error', 'Google Sign-In failed to load — refresh the page');
+  }
+}
+
+async function onTokenResponse(resp) {
+  if (resp.error) {
+    console.error('OAuth error:', resp.error, resp.error_description);
+    setCalStatus('error', 'Sign-in failed: ' + (resp.error_description || resp.error));
+    return;
+  }
+  const token = safeGapi()?.client?.getToken();
+  if (token) saveToken(token);
+
+  // Get email from JWT id_token if available (no extra API call needed)
+  try {
+    if (resp.id_token) {
+      const payload = JSON.parse(atob(resp.id_token.split('.')[1]));
+      const email = payload.email || '';
+      if (email) {
+        saveConnectedEmail(email);
+        const emailEl = document.getElementById('calEmailText');
+        if (emailEl) emailEl.textContent = email;
+      }
+    }
+  } catch(e) { /* email display is non-critical, skip silently */ }
+
+  showSignedIn();
+
+  // Ensure Calendar API is loaded before fetching
+  const _g = safeGapi();
+  if (!_g) { setCalStatus('error', 'Google API not loaded — refresh the page'); return; }
+  if (!_g.client.calendar) {
+    try {
+      await _g.client.load('calendar', 'v3');
+    } catch(e) {
+      setCalStatus('error', 'Could not load Calendar API — check API key restrictions');
+      return;
+    }
+  }
+  await fetchCalendarEvents();
+}
+
+function restoreSignedInState() {
+  // Check if saved token has write scope — if not, force re-auth
+  const saved = loadSavedToken();
+  if (saved && saved.scope && !saved.scope.includes('calendar.events')) {
+    console.log('Token has readonly scope — clearing for re-auth with write scope');
+    clearToken();
+    clearConnectedEmail();
+    showSignedOut();
+    setCalStatus('disconnected', 'Please re-link calendar for full sync');
+    return;
+  }
+  const email = loadConnectedEmail();
+  const emailEl = document.getElementById('calEmailText');
+  if (emailEl && email) emailEl.textContent = email;
+  showSignedIn();
+  fetchCalendarEvents();
+}
+
+// ── Auth actions ──────────────────────────────────────────────────
+function handleAuthClick() {
+  if (!gsiReady || !tokenClient) {
+    // Scripts still loading — wait briefly then try
+    setCalStatus('syncing', 'Loading Google Sign-In…');
+    const btn = document.getElementById('googleSignInBtn');
+    if (btn) btn.disabled = true;
+    let waited = 0;
+    const poll = setInterval(() => {
+      waited += 250;
+      if (gsiReady && tokenClient) {
+        clearInterval(poll);
+        if (btn) btn.disabled = false;
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+      } else if (waited >= 6000) {
+        clearInterval(poll);
+        if (btn) btn.disabled = false;
+        setCalStatus('error', 'Google Sign-In blocked — try Chrome, or disable ad/tracker blockers');
+      }
+    }, 250);
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+function switchAccountClick() {
+  // Revoke + clear, then show picker for a different account
+  revokeAndClear();
+  setTimeout(() => {
+    if (tokenClient) tokenClient.requestAccessToken({ prompt: 'select_account' });
+  }, 300);
+}
+
+function unlinkCalendar() {
+  revokeAndClear();
+  showSignedOut();
+  setCalStatus('disconnected', 'Calendar unlinked');
+  // Clear calendar events from UI
+  const calEvents = document.getElementById('calEvents');
+  if (calEvents) calEvents.innerHTML = '';
+  const todayLabel = document.getElementById('todayCalLabel');
+  const todayEvents = document.getElementById('todayCalEvents');
+  if (todayLabel) todayLabel.style.display = 'none';
+  if (todayEvents) todayEvents.innerHTML = '';
+}
+
+function revokeAndClear() {
+  try {
+    const token = safeGapi()?.client?.getToken();
+    if (token?.access_token) {
+      safeGoogle()?.accounts?.oauth2?.revoke(token.access_token, () => {});
+      safeGapi()?.client?.setToken('');
+    }
+  } catch(e) {}
+  clearToken();
+  clearConnectedEmail();
+}
+
+function showSignedIn() {
+  hideCalOnboarding();
+  const out = document.getElementById('calSignedOut');
+  const inn = document.getElementById('calSignedIn');
+  if (out) out.style.display = 'none';
+  if (inn) inn.style.display = '';
+  setCalStatus('connected', 'Google Calendar linked');
+  // Update pill email text
+  const email = loadConnectedEmail();
+  const emailEl = document.getElementById('calEmailText');
+  if (emailEl && email) emailEl.textContent = email;
+}
+
+function showCalOptions() {
+  // iOS-style action sheet
+  const existing = document.getElementById('calOptionsSheet');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'calOptionsSheet';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:flex-end;justify-content:center;z-index:300;padding:10px;';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+  const email = loadConnectedEmail();
+  overlay.innerHTML = `
+    <div style="width:100%;max-width:430px;margin-bottom:4px;" onclick="event.stopPropagation()">
+      <div style="background:rgba(255,255,255,0.97);border-radius:14px;overflow:hidden;margin-bottom:8px;">
+        <div style="padding:14px 16px 10px;text-align:center;border-bottom:0.5px solid var(--border-med);">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;">Google Calendar</div>
+          <div style="font-size:12px;color:var(--text-muted);">${email || 'Connected'}</div>
+        </div>
+        <button onclick="document.getElementById('calOptionsSheet').remove();switchAccountClick();" style="width:100%;background:none;border:none;border-bottom:0.5px solid var(--border-med);padding:15px 16px;font-family:-apple-system,sans-serif;font-size:16px;color:var(--chocolate);cursor:pointer;">
+          Switch Account
+        </button>
+        <button onclick="document.getElementById('calOptionsSheet').remove();unlinkCalendar();" style="width:100%;background:none;border:none;padding:15px 16px;font-family:-apple-system,sans-serif;font-size:16px;color:#FF3B30;cursor:pointer;">
+          Unlink Calendar
+        </button>
+      </div>
+      <div style="background:rgba(255,255,255,0.97);border-radius:14px;overflow:hidden;">
+        <button onclick="document.getElementById('calOptionsSheet').remove();" style="width:100%;background:none;border:none;padding:15px 16px;font-family:-apple-system,sans-serif;font-size:16px;font-weight:700;color:var(--orange);cursor:pointer;">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function showSignedOut() {
+  const out = document.getElementById('calSignedOut');
+  const inn = document.getElementById('calSignedIn');
+  if (out) out.style.display = '';
+  if (inn) inn.style.display = 'none';
+}
+
+// ── Fetch events ─────────────────────────────────────────────────
+async function fetchCalendarEvents() {
+  setCalStatus('syncing', 'Fetching events…');
+  // Ensure Calendar API client is loaded
+  const _gapi = safeGapi();
+  if (!_gapi) { setCalStatus('error', 'Google API not loaded — refresh the page'); return; }
+  if (!_gapi.client.calendar) {
+    try { await _gapi.client.load('calendar', 'v3'); }
+    catch(e) { setCalStatus('error', 'Calendar API not available'); return; }
+  }
+  try {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfWeek  = new Date(startOfDay);
+    endOfWeek.setDate(startOfDay.getDate() + 7);
+
+    const response = await _gapi.client.calendar.events.list({
+      calendarId: 'primary',
+      timeMin: startOfDay.toISOString(),
+      timeMax: endOfWeek.toISOString(),
+      showDeleted: false,
+      singleEvents: true,
+      maxResults: 50,
+      orderBy: 'startTime'
+    });
+
+    const events = response.result.items || [];
+    const now2 = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const lastSync = document.getElementById('calLastSync');
+    if (lastSync) lastSync.textContent = 'Last synced: ' + now2;
+    setCalStatus('connected', `Synced · ${events.length} events this week`);
+    renderGoogleEvents(events);
+    renderConflictBanners(events);
+  } catch(e) {
+    console.warn('Calendar fetch error:', e);
+    if (e.status === 401) {
+      clearToken();
+      showSignedOut();
+      setCalStatus('error', 'Session expired — please sign in again');
+    } else {
+      setCalStatus('error', 'Could not load events — tap Refresh to retry');
+    }
+  }
+}
+
+// ── Keywords for classification ───────────────────────────────────
+const EX_KW  = ['exercise','workout','pilates','yoga','cardio','functional','hiit','run','walk','gym','training','core','stretch'];
+const STU_KW = ['ai study','study','course','learning','ml ','genai','prompt','interview prep','portfolio','networking','linkedin','roadmap','ai pm'];
+
+function classifyEvent(title) {
+  const t = (title || '').toLowerCase();
+  if (EX_KW.some(k => t.includes(k)))  return 'exercise';
+  if (STU_KW.some(k => t.includes(k))) return 'study';
+  return 'other';
+}
+
+function isConflictTime(startStr) {
+  if (!startStr) return false;
+  const d = new Date(startStr);
+  const mins = d.getHours() * 60 + d.getMinutes();
+  // Study: 8:30-11:00 (510-660), Exercise: 11:00-12:30 (660-750)
+  return mins >= 510 && mins <= 750;
+}
+
+function fmtTime(dateStr) {
+  if (!dateStr) return 'All day';
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function fmtTimeRange(start, end) {
+  if (!start) return 'All day';
+  const s = new Date(start);
+  const e = end ? new Date(end) : null;
+  const sf = s.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const ef = e ? e.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+  return ef ? `${sf} – ${ef}` : sf;
+}
+
+function isTodayEvent(event) {
+  const todayStr = getToday();
+  const start = event.start?.dateTime || event.start?.date || '';
+  return start.startsWith(todayStr);
+}
+
+// ── Schedule windows (minutes from midnight) ─────────────────────
+const SCHEDULE_WINDOWS = {
+  Monday:    { exercise: [{s:660,e:750,label:'11:00–12:30'}], study: [{s:510,e:660,label:'8:30–11:00'},{s:810,e:900,label:'1:30–3:00'}] },
+  Tuesday:   { exercise: [{s:660,e:750,label:'11:00–12:30'}], study: [{s:510,e:660,label:'8:30–11:00'},{s:810,e:900,label:'1:30–3:00'}] },
+  Wednesday: { exercise: [], study: [{s:510,e:690,label:'8:30–11:30'},{s:960,e:1020,label:'4:00–5:00'}] },
+  Thursday:  { exercise: [{s:660,e:750,label:'11:00–12:30'}], study: [{s:510,e:660,label:'8:30–11:00'},{s:810,e:900,label:'1:30–3:00'}] },
+  Friday:    { exercise: [{s:660,e:750,label:'11:00–12:30'}], study: [{s:510,e:660,label:'8:30–11:00'},{s:810,e:900,label:'1:30–3:00'}] },
+  Saturday:  { exercise: [{s:360,e:420,label:'6:00–7:00'}],   study: [{s:540,e:600,label:'9:00–10:00'},{s:630,e:690,label:'10:30–11:30'}] },
+  Sunday:    { exercise: [{s:360,e:420,label:'6:00–7:00'}],   study: [{s:570,e:660,label:'9:30–11:00'}] },
+};
+
+const BLOCKED_WINDOWS = [
+  {s:0,e:330},{s:390,e:450},{s:450,e:510},{s:900,e:960},{s:1140,e:1440},
+];
+
+const IGNORED_EVENTS = ['family assistant', 'ananya - dance drop-off'];
+
+// Decisions stored per date: { "eventTitle|type": "accepted"|"rejected" }
+function loadConflictDecisions(dateStr) {
+  try { return JSON.parse(localStorage.getItem('conflictDecisions_' + dateStr) || '{}'); } catch(e) { return {}; }
+}
+function saveConflictDecision(dateStr, key, decision) {
+  const d = loadConflictDecisions(dateStr);
+  d[key] = decision;
+  localStorage.setItem('conflictDecisions_' + dateStr, JSON.stringify(d));
+}
+
+function evToMins(ev) {
+  const title = ev.summary || 'Event';
+  if (ev.start?.dateTime) {
+    // Timed event
+    const sd = new Date(ev.start.dateTime);
+    const ed = ev.end?.dateTime ? new Date(ev.end.dateTime) : new Date(sd.getTime() + 3600000);
+    return { s: sd.getHours()*60+sd.getMinutes(), e: ed.getHours()*60+ed.getMinutes(), title, allDay: false };
+  } else if (ev.start?.date) {
+    // All-day event — treat as spanning full day (0–1440)
+    return { s: 0, e: 1440, title, allDay: true };
+  }
+  return null;
+}
+
+function overlaps(as, ae, bs, be, minMins=5) { return Math.min(ae,be) - Math.max(as,bs) >= minMins; }
+
+function eventsForDate(events, dateStr) {
+  return events.filter(ev => {
+    const start = ev.start?.dateTime || ev.start?.date || '';
+    return start.startsWith(dateStr);
+  });
+}
+
+function detectConflictsForDate(events, dateStr) {
+  if (dateStr < '2026-03-24') return [];
+  const d = new Date(dateStr + 'T12:00:00');
+  const dayName = DAYS[d.getDay()];
+  const windows = SCHEDULE_WINDOWS[dayName];
+  if (!windows) return [];
+
+  const dayEvMins = eventsForDate(events, dateStr)
+    .map(evToMins)
+    .filter(Boolean)
+    .filter(m => !IGNORED_EVENTS.some(ig => m.title.toLowerCase().includes(ig)));
+  
+  console.log('[Conflicts] Date:', dateStr, 'Day:', dayName, 'Events found:', dayEvMins.length, dayEvMins.map(m => m.title + ' ' + m.s + '-' + m.e));
+
+  const conflicts = [];
+  for (const type of ['exercise', 'study']) {
+    for (const win of (windows[type] || [])) {
+      for (const ev of dayEvMins) {
+        if (overlaps(ev.s, ev.e, win.s, win.e)) {
+          conflicts.push({ type, window: win, event: ev, dayName, dateStr });
+        }
+      }
+    }
+  }
+  return conflicts;
+}
+
+function findAlternateSlot(events, dateStr, type, excludeTitle) {
+  // Get all timed events for this day, excluding the conflicting event itself
+  // and excluding all-day events (they'd block everything)
+  const dayEvMins = eventsForDate(events, dateStr)
+    .map(evToMins)
+    .filter(Boolean)
+    .filter(m => !m.allDay && m.title !== excludeTitle)
+    .filter(m => !IGNORED_EVENTS.some(ig => m.title.toLowerCase().includes(ig)));
+
+  const candidates = type === 'exercise'
+    ? [{s:390,e:450,label:'6:30–7:30am'},{s:750,e:870,label:'12:30–2:30pm'},{s:870,e:960,label:'2:30–4:00pm'},{s:960,e:1080,label:'4:00–6:00pm'}]
+    : [{s:390,e:510,label:'6:30–8:30am'},{s:750,e:870,label:'12:30–2:30pm'},{s:870,e:960,label:'2:30–4:00pm'},{s:960,e:1080,label:'4:00–6:00pm'}];
+
+  console.log('[findAlternateSlot] type:', type, 'exclude:', excludeTitle, 'blocking events:', dayEvMins.map(m => m.title));
+  for (const slot of candidates) {
+    if (BLOCKED_WINDOWS.some(b => overlaps(slot.s, slot.e, b.s, b.e))) { console.log('  blocked window:', slot.label); continue; }
+    if (dayEvMins.some(ev => overlaps(ev.s, ev.e, slot.s, slot.e))) { console.log('  event clash:', slot.label); continue; }
+    console.log('  ✓ found slot:', slot.label);
+    return slot;
+  }
+  console.log('  no slot found');
+  return null;
+}
+
+let _conflictSuggestCache = {};
+
+async function getClaudeSuggestion(conflict, altSlot) {
+  const cacheKey = conflict.dateStr + conflict.event.title + conflict.type;
+  if (_conflictSuggestCache[cacheKey]) return _conflictSuggestCache[cacheKey];
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 80,
+        messages: [{ role: 'user', content:
+          `Scheduling assistant for a busy mom. Her ${conflict.type} block (${conflict.window.label}) conflicts with "${conflict.event.title}".${altSlot ? ` Best alternate: ${altSlot.label}.` : ''} Write ONE warm sentence (max 15 words) suggesting when to reschedule. Be specific. No emoji.`
+        }]
+      })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const text = data.content?.[0]?.text?.trim();
+      if (text) { _conflictSuggestCache[cacheKey] = text; return text; }
+    }
+  } catch(e) { console.warn('Claude suggestion failed:', e); }
+  const fallback = altSlot
+    ? `Try moving your ${conflict.type} to ${altSlot.label}.`
+    : `Your ${conflict.type} block conflicts with "${conflict.event.title}".`;
+  _conflictSuggestCache[cacheKey] = fallback;
+  return fallback;
+}
+
+// ── Conflict modal — one conflict at a time, must decide ──────────
+let _pendingConflicts = [];
+let _currentConflictIdx = 0;
+let _conflictAllEvents = [];
+
+async function renderConflictBanners(events) {
+  _conflictAllEvents = events;
+  const dateStr = getActiveDate();
+  console.log('[renderConflictBanners] activeDate:', dateStr, 'total events:', events.length);
+  const conflicts = detectConflictsForDate(events, dateStr);
+  console.log('[renderConflictBanners] conflicts found:', conflicts.length, conflicts);
+  if (conflicts.length === 0) {
+    document.getElementById('conflictBanners').innerHTML = '';
+    return;
+  }
+
+  // Filter out already-decided conflicts
+  const decisions = loadConflictDecisions(dateStr);
+  _pendingConflicts = conflicts.filter(c => !decisions[c.event.title + '|' + c.type]);
+
+  if (_pendingConflicts.length === 0) {
+    renderDecidedSummary(conflicts, decisions, dateStr);
+    return;
+  }
+
+  _currentConflictIdx = 0;
+  await showConflictCard(_currentConflictIdx, conflicts.length);
+}
+
+async function showConflictCard(idx, total) {
+  const container = document.getElementById('conflictBanners');
+  if (!container || idx >= _pendingConflicts.length) {
+    renderDecidedSummary(detectConflictsForDate(_conflictAllEvents, getActiveDate()), loadConflictDecisions(getActiveDate()), getActiveDate());
+    return;
+  }
+
+  const conflict = _pendingConflicts[idx];
+  const altSlot  = findAlternateSlot(_conflictAllEvents, conflict.dateStr, conflict.type, conflict.event.title);
+  const suggestion = await getClaudeSuggestion(conflict, altSlot);
+  const typeIcon  = conflict.type === 'exercise' ? '🏃' : '📚';
+  const typeLabel = conflict.type === 'exercise' ? 'Exercise' : 'Study';
+  const progress  = total > 1 ? `<div style="font-family:'Jost',sans-serif;font-size:9px;color:var(--text-muted);letter-spacing:1px">${idx + 1} of ${total} conflicts</div>` : '';
+
+  container.innerHTML = `
+    <div style="
+      background:rgba(200,82,26,0.06);
+      border:1.5px solid rgba(200,82,26,0.35);
+      border-radius:var(--radius);
+      overflow:hidden;
+      margin-bottom:12px;
+      box-shadow:0 2px 12px rgba(200,82,26,0.12);
+    ">
+      <!-- Header stripe -->
+      <div style="
+        background:rgba(200,82,26,0.12);
+        border-bottom:1px solid rgba(200,82,26,0.2);
+        padding:10px 14px;
+        display:flex;align-items:center;justify-content:space-between
+      ">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--orange);flex-shrink:0;animation:conflictPulse 2s ease-in-out infinite"></div>
+          <div style="font-family:'Jost',sans-serif;font-size:9px;font-weight:500;letter-spacing:2.5px;text-transform:uppercase;color:var(--orange)">${typeLabel} conflict · ${conflict.window.label}</div>
+        </div>
+        ${progress}
+      </div>
+      <!-- Body -->
+      <div style="padding:14px 16px">
+        <div style="
+          display:inline-block;
+          font-family:'Jost',sans-serif;font-size:11px;color:var(--orange);
+          background:rgba(200,82,26,0.1);border:1px solid rgba(200,82,26,0.2);
+          border-radius:3px;padding:3px 8px;margin-bottom:10px
+        ">${conflict.event.title}</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:16px;line-height:1.65;color:var(--text);margin-bottom:16px">${suggestion}</div>
+        <div style="display:flex;gap:8px">
+          ${altSlot ? `
+          <button onclick="resolveConflict('accept','${conflict.event.title.replace(/'/g,"\\'")}','${conflict.type}','${altSlot.label}')"
+            style="flex:2;background:var(--orange);border:none;border-radius:var(--radius);padding:13px 10px;color:#fff;
+            font-family:'Jost',sans-serif;font-size:9px;font-weight:500;letter-spacing:2px;text-transform:uppercase;cursor:pointer">
+            Move to ${altSlot.label}
+          </button>` : ''}
+          <button onclick="resolveConflict('reject','${conflict.event.title.replace(/'/g,"\\'")}','${conflict.type}','')"
+            style="flex:1;background:none;border:1px solid var(--border-med);border-radius:var(--radius);padding:13px 10px;
+            color:var(--text-muted);font-family:'Jost',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">
+            Keep
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function resolveConflict(decision, eventTitle, type, newTimeLabel) {
+  const dateStr = getActiveDate();
+  saveConflictDecision(dateStr, eventTitle + '|' + type, decision);
+
+  if (decision === 'accept' && newTimeLabel) {
+    const overrides = getTaskOverrides(dateStr);
+    const key = type + 'Tasks';
+    const tasks = getTasksForDate(type, dateStr);
+    const taskIdx = tasks.findIndex(t => !t.name.toLowerCase().includes('rest'));
+    if (taskIdx >= 0) {
+      tasks[taskIdx] = { ...tasks[taskIdx], time: newTimeLabel };
+      overrides[key] = tasks;
+      saveTaskOverrides(dateStr, overrides);
+      if (type === 'exercise') renderExerciseTasks();
+      else renderStudyTasks();
+      showCalSyncToast('✓ ' + (type === 'exercise' ? 'Exercise' : 'Study') + ' moved to ' + newTimeLabel);
+    }
+  }
+
+  _currentConflictIdx++;
+  const allConflicts = detectConflictsForDate(_conflictAllEvents, dateStr);
+  await showConflictCard(_currentConflictIdx, allConflicts.length);
+}
+
+function renderDecidedSummary(conflicts, decisions, dateStr) {
+  const container = document.getElementById('conflictBanners');
+  if (!container || conflicts.length === 0) { container.innerHTML = ''; return; }
+
+  const lines = conflicts.map(c => {
+    const dec = decisions[c.event.title + '|' + c.type];
+    const icon = dec === 'accept' ? '✓' : '—';
+    const label = dec === 'accept' ? 'rescheduled' : 'kept as is';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:11px;color:${dec === 'accept' ? 'var(--sage)' : 'var(--text-muted)'};width:14px">${icon}</span>
+      <span style="font-family:'Jost',sans-serif;font-size:11px;color:var(--text-muted);flex:1">${c.event.title} · ${c.type}</span>
+      <span style="font-family:'Jost',sans-serif;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)">${label}</span>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-family:'Jost',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted)">Today's conflicts resolved</div>
+        <button onclick="resetConflictDecisions()" style="background:none;border:none;font-family:'Jost',sans-serif;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--orange);cursor:pointer">Review again</button>
+      </div>
+      ${lines}
+    </div>`;
+}
+
+async function resetConflictDecisions() {
+  const dateStr = getActiveDate();
+  localStorage.removeItem('conflictDecisions_' + dateStr);
+  await renderConflictBanners(_conflictAllEvents);
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderGoogleEvents(events) {
+  const todayEvents = events.filter(isTodayEvent);
+  const futureEvents = events.filter(e => !isTodayEvent(e));
+
+  // Render in Progress panel
+  const container = document.getElementById('calEvents');
+  if (container) {
+    container.innerHTML = '';
+    if (todayEvents.length === 0 && futureEvents.length === 0) {
+      container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 0">No upcoming events found.</div>';
+    } else {
+      renderEventList(container, todayEvents, 'Today');
+      if (futureEvents.length > 0) renderEventList(container, futureEvents.slice(0,8), 'Coming up');
+    }
+  }
+
+  // Render in Today panel
+  const todayLabel = document.getElementById('todayCalLabel');
+  const todayContainer = document.getElementById('todayCalEvents');
+  if (todayContainer) {
+    todayContainer.innerHTML = '';
+    if (todayEvents.length > 0) {
+      if (todayLabel) todayLabel.style.display = '';
+      renderEventList(todayContainer, todayEvents, null);
+    } else {
+      if (todayLabel) todayLabel.style.display = 'none';
+    }
+  }
+}
+
+function renderEventList(container, events, groupLabel) {
+  if (groupLabel) {
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:10px 0 6px;';
+    lbl.textContent = groupLabel;
+    container.appendChild(lbl);
+  }
+  events.forEach(ev => {
+    const title = ev.summary || '(no title)';
+    const type = classifyEvent(title);
+    const startStr = ev.start?.dateTime || ev.start?.date || '';
+    const endStr   = ev.end?.dateTime   || ev.end?.date   || '';
+    const isConflict = type === 'other' && isConflictTime(startStr);
+    const timeStr = ev.start?.date && !ev.start?.dateTime
+      ? 'All day'
+      : fmtTimeRange(startStr, endStr);
+
+    const div = document.createElement('div');
+    div.className = 'cal-event-item ' + (isConflict ? 'conflict' : type);
+    div.innerHTML = `
+      <div class="cal-event-time">${timeStr}</div>
+      <div class="cal-event-title">${title}</div>
+      <span class="cal-event-tag ${isConflict ? 'tag-conflict' : 'tag-' + type}">${isConflict ? 'MOVES THINGS' : type === 'other' ? 'EVENT' : type.toUpperCase()}</span>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function setCalStatus(state, text) {
+  const dot  = document.getElementById('calDot');
+  const span = document.getElementById('calStatusText');
+  if (dot)  dot.className = 'cal-dot ' + state;
+  if (span) span.textContent = text;
+
+  const pillDot  = document.getElementById('calPillDot');
+  const pillText = document.getElementById('calPillText');
+  if (!pillDot || !pillText) return;
+
+  if (state === 'connected') {
+    pillDot.style.background = '#4CAF50';
+    const email = loadConnectedEmail() || '';
+    pillText.textContent = email ? email.split('@')[0] : 'Connected';
+    // update manage sheet
+    const me = document.getElementById('calManageEmail');
+    if (me) me.textContent = email || 'Connected';
+    updateCalManageSyncTime();
+  } else if (state === 'syncing') {
+    pillDot.style.background = 'var(--gold)';
+    pillText.textContent = 'Syncing…';
+  } else if (state === 'error') {
+    pillDot.style.background = 'var(--orange)';
+    pillText.textContent = 'Cal error';
+  } else {
+    // disconnected — show onboarding if never linked
+    pillDot.style.background = 'rgba(255,255,255,0.25)';
+    pillText.textContent = 'Calendar';
+  }
+}
+
+function handleCalPillClick() {
+  const email = loadConnectedEmail();
+  if (!email) {
+    // Not connected — show onboarding
+    showCalOnboarding();
+    return;
+  }
+  // Connected — open manage sheet
+  const me = document.getElementById('calManageEmail');
+  if (me) me.textContent = email;
+  updateCalManageSyncTime();
+  document.getElementById('calManageSheet').style.display = 'block';
+  document.getElementById('calManageOverlay').style.display = 'block';
+}
+
+function closeCalManageSheet() {
+  document.getElementById('calManageSheet').style.display = 'none';
+  document.getElementById('calManageOverlay').style.display = 'none';
+}
+
+function updateCalManageSyncTime() {
+  const el = document.getElementById('calManageSyncTime');
+  if (!el) return;
+  const now = new Date();
+  el.textContent = 'Last synced ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function showCalOnboarding() {
+  const el = document.getElementById('calOnboarding');
+  if (el) { el.style.display = 'flex'; }
+}
+
+function hideCalOnboarding() {
+  const el = document.getElementById('calOnboarding');
+  if (el) { el.style.display = 'none'; }
+}
+
+function skipOnboarding() {
+  // Mark skipped so we don't show it again this session
+  sessionStorage.setItem('calOnboardingSkipped', '1');
+  hideCalOnboarding();
+}
+
+function updateCalManageSyncTime() {
+  const el = document.getElementById('calManageSyncTime');
+  if (!el) return;
+  const now = new Date();
+  el.textContent = 'Last synced ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+// Called by <script onload> in <head> when apis.google.com/js/api.js loads
+function onGapiLoad() {
+  if (typeof gapi === 'undefined') { console.error('gapi not defined in onGapiLoad'); return; }
+  gapi.load('client', initGapiClient);
+}
+
+// Called by <script onload> in <head> when accounts.google.com/gsi/client loads
+function onGsiLoad() {
+  initGsi();
+}
+
+function initCalendar() {
+  const _cid = getClientId();
+  const _key = getApiKey();
+  if (!_cid || _cid.includes('YOUR_CLIENT_ID') || _cid.length < 10) {
+    setCalStatus('error', 'Paste your Client ID in the config block at the top of index.html');
+    return;
+  }
+  if (!_key || _key.includes('YOUR_API_KEY') || _key.length < 10) {
+    setCalStatus('error', 'Paste your API Key in the config block at the top of index.html');
+    return;
+  }
+
+  // Scripts already loading via <head> tags — just restore session if token exists
+  if (loadSavedToken()) {
+    setCalStatus('syncing', 'Reconnecting…');
+    const email = loadConnectedEmail();
+    if (email) {
+      const el = document.getElementById('calConnectedAs');
+      if (el) el.textContent = 'Connected as: ' + email;
+      showSignedIn();
+    }
+  } else {
+    setCalStatus('disconnected', 'Ready to connect');
+  }
+}
+
+// ─── TASK OVERRIDES (per-date edits) ────────────────────────────
+
+function getTaskOverrides(dateStr) {
+  try {
+    return JSON.parse(localStorage.getItem('overrides_' + dateStr) || '{}');
+  } catch(e) { return {}; }
+}
+
+function saveTaskOverrides(dateStr, overrides) {
+  try { localStorage.setItem('overrides_' + dateStr, JSON.stringify(overrides)); } catch(e) {}
+}
+
+function getTasksForDate(type, dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const dayName = DAYS[d.getDay()];
+  const defaults = type === 'exercise' ? (EXERCISE_BY_DAY[dayName] || []) : (STUDY_BY_DAY[dayName] || []);
+  const overrides = getTaskOverrides(dateStr);
+  const key = type + 'Tasks';
+  // Merge: start with defaults, apply overrides
+  let tasks = overrides[key] ? overrides[key] : defaults.map(t => ({ ...t }));
+  return tasks;
+}
+
+// ─── MODAL STATE ──────────────────────────────────────────────────
+let _modalType    = '';   // 'exercise' | 'study'
+let _modalIdx     = -1;   // task index, -1 = new task
+let _modalDate    = '';   // dateStr
+let _modalCalSync = false;
+
+function openModal(type, idx, dateStr) {
+  _modalType    = type;
+  _modalIdx     = idx;
+  _modalDate    = dateStr;
+
+  const tasks   = getTasksForDate(type, dateStr);
+  const task    = idx >= 0 ? tasks[idx] : null;
+  const isStudy = type === 'study';
+  const isSignedIn = !!(safeGapi()?.client?.getToken()?.access_token);
+
+  const titleEl   = document.getElementById('modalTitle');
+  const nameEl    = document.getElementById('modalName');
+  const timeEl    = document.getElementById('modalTime');
+  const saveBtnEl = document.getElementById('modalSaveBtn');
+  const deleteBtn = document.querySelector('.modal-btn.danger');
+
+  if (!titleEl || !nameEl || !timeEl || !saveBtnEl) {
+    console.error('Modal elements not found — modal HTML may be broken');
+    return;
+  }
+
+  titleEl.textContent = task
+    ? 'Edit ' + (isStudy ? 'Study Block' : 'Exercise')
+    : 'Add '  + (isStudy ? 'Study Block' : 'Exercise');
+  nameEl.value = task ? task.name : '';
+  timeEl.value = task ? task.time : '';
+  populateTimeFields(task ? task.time : '');
+  saveBtnEl.className = 'modal-btn primary' + (isStudy ? ' study-btn' : '');
+  if (deleteBtn) deleteBtn.style.display = task ? '' : 'none';
+
+  // Show calendar sync status row
+  const calRow  = document.getElementById('modalCalStatus');
+  const calText = document.getElementById('modalCalStatusText');
+  if (calRow && calText) {
+    if (isSignedIn) {
+      calRow.style.display = '';
+      if (task?.eventId) {
+        calText.textContent = '📅 Will update Google Calendar event';
+      } else if (task) {
+        calText.textContent = '📅 Will add to Google Calendar';
+      } else {
+        calText.textContent = '📅 Will create Google Calendar event';
+      }
+    } else {
+      calRow.style.display = '';
+      calText.textContent = '📅 Link calendar (Progress tab) to sync';
+    }
+  }
+
+  const modal = document.getElementById('taskModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('taskModal').classList.remove('open');
+}
+
+// toggleCalSync removed — sync is now automatic
+
+async function saveTaskEdit() {
+  const name = document.getElementById('modalName').value.trim();
+  syncTimeHidden();
+  const time = document.getElementById('modalTime').value.trim();
+  if (!name) { document.getElementById('modalName').focus(); return; }
+
+  const overrides    = getTaskOverrides(_modalDate);
+  const key          = _modalType + 'Tasks';
+  let tasks          = getTasksForDate(_modalType, _modalDate);
+  const isEdit       = _modalIdx >= 0;
+  const existingTask = isEdit ? tasks[_modalIdx] : null;
+  const isSignedIn   = !!(safeGapi()?.client?.getToken()?.access_token);
+
+  // ── 1. Save to app immediately — never blocked by calendar ──────
+  let eventId = existingTask?.eventId || null;
+  const updatedTask = { name, time };
+  if (eventId) updatedTask.eventId = eventId;
+
+  if (isEdit) {
+    tasks[_modalIdx] = updatedTask;
+  } else {
+    tasks.push(updatedTask);
+  }
+  overrides[key] = tasks;
+  saveTaskOverrides(_modalDate, overrides);
+
+  closeModal();
+  renderExerciseTasks();
+  renderStudyTasks();
+  updateProgressCards();
+  renderWeekScore();
+
+  // ── 2. Sync to Google Calendar in background (non-blocking) ─────
+  const _token    = safeGapi()?.client?.getToken();
+  const _hasToken = !!_token?.access_token;
+  console.log('[CalSync] isSignedIn:', isSignedIn, '| gapiReady:', gapiReady, '| hasToken:', _hasToken, '| token scope:', _token?.scope);
+
+  if (!isSignedIn || !gapiReady) {
+    console.warn('[CalSync] Skipping — not signed in or gapi not ready. isSignedIn:', isSignedIn, 'gapiReady:', gapiReady);
+    setSyncBadge(_modalType, isEdit ? _modalIdx : (getTasksForDate(_modalType, _modalDate).length - 1), 'failed', '⚠ Not linked — tap to fix');
+    return;
+  }
+
+  // Check token has write scope
+  if (_token?.scope && !_token.scope.includes('calendar.events')) {
+    console.warn('[CalSync] Token has read-only scope — need to re-link for write access. Scope:', _token.scope);
+    setSyncBadge(_modalType, isEdit ? _modalIdx : (getTasksForDate(_modalType, _modalDate).length - 1), 'failed', '⚠ Re-link calendar for sync');
+    showCalSyncError({ message: 'Your calendar is linked in read-only mode. Unlink and re-link to enable syncing events.', _fixMsg: 'Go to the Progress tab → Unlink calendar → Link again and approve edit access when Google prompts.' });
+    return;
+  }
+
+  // Show "Syncing…" badge on the task card immediately
+  const syncIdx = isEdit ? _modalIdx : (getTasksForDate(_modalType, _modalDate).length - 1);
+  setSyncBadge(_modalType, syncIdx, 'syncing', 'Syncing…');
+
+  try {
+    let newEventId = null;
+    console.log('[CalSync] isEdit:', isEdit, '| eventId:', eventId, '| name:', name, '| date:', _modalDate);
+    if (isEdit && eventId) {
+      console.log('[CalSync] → Updating existing calendar event');
+      newEventId = await updateCalendarEvent(eventId, name, time, _modalDate, _modalType);
+    } else if (isEdit && !eventId) {
+      console.log('[CalSync] → Edit but no eventId — creating new calendar event');
+      newEventId = await createCalendarEvent(name, time, _modalDate, _modalType);
+    } else {
+      console.log('[CalSync] → New task — creating calendar event');
+      newEventId = await createCalendarEvent(name, time, _modalDate, _modalType);
+    }
+
+    if (newEventId) {
+      // Store eventId back on task
+      const latestTasks = getTasksForDate(_modalType, _modalDate);
+      const taskIdx = isEdit ? _modalIdx : latestTasks.length - 1;
+      if (latestTasks[taskIdx]) {
+        latestTasks[taskIdx].eventId = newEventId;
+        const latestOverrides = getTaskOverrides(_modalDate);
+        latestOverrides[key] = latestTasks;
+        saveTaskOverrides(_modalDate, latestOverrides);
+      }
+      console.log('Calendar synced OK, eventId:', newEventId);
+      setSyncBadge(_modalType, syncIdx, 'synced', '✓ Synced');
+      // Fade out after 4 seconds
+      setTimeout(() => setSyncBadge(_modalType, syncIdx, 'none', ''), 4000);
+    }
+  } catch(e) {
+    console.warn('Calendar sync error:', e);
+    setSyncBadge(_modalType, syncIdx, 'failed', '⚠ Sync failed — tap for details');
+    showCalSyncError(e);
+  }
+}
+
+// Sets a sync status badge on a rendered task card
+function setSyncBadge(type, taskIdx, state, text) {
+  const containerIds = type === 'exercise'
+    ? ['exerciseTasks']
+    : ['studyTasks', 'studyTasksToday'];
+
+  containerIds.forEach(cid => {
+    const container = document.getElementById(cid);
+    if (!container) return;
+    const cards = container.querySelectorAll('.task-card');
+    const card  = cards[taskIdx];
+    if (!card) return;
+
+    // Remove existing badge
+    const existing = card.querySelector('.sync-badge');
+    if (existing) existing.remove();
+
+    if (state === 'none' || !text) return;
+
+    const badge = document.createElement('span');
+    badge.className = 'sync-badge ' + state;
+    badge.textContent = text;
+    if (state === 'failed') {
+      badge.onclick = (e) => {
+        e.stopPropagation();
+        const err = document.getElementById('calSyncErrorBanner');
+        if (err) err.scrollIntoView({ behavior: 'smooth' });
+      };
+    }
+    // Insert before the edit button
+    const editBtn = card.querySelector('.task-edit-btn');
+    if (editBtn) {
+      card.insertBefore(badge, editBtn);
+    } else {
+      card.appendChild(badge);
+    }
+  });
+}
+
+function showCalSyncToast(msg) {
+  let toast = document.getElementById('calSyncToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'calSyncToast';
+    toast.style.cssText = [
+      'position:fixed', 'bottom:100px', 'left:50%', 'transform:translateX(-50%)',
+      'background:var(--chocolate)', 'color:var(--bg)',
+      'font-family:\'Jost\',sans-serif', 'font-size:11px', 'letter-spacing:1.5px',
+      'padding:10px 20px', 'border-radius:2px', 'z-index:999',
+      'border-left:3px solid var(--sage)', 'white-space:nowrap',
+      'transition:opacity 0.4s', 'box-shadow:0 4px 20px rgba(26,15,5,0.2)'
+    ].join(';');
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+}
+
+function parseCalError(e) {
+  // Handle plain objects with _fixMsg (our own internal errors)
+  if (e?._fixMsg) return { short: e.message || String(e), fix: e._fixMsg };
+
+  // Extract the most useful human-readable reason from a Google API error
+  try {
+    // GAPI errors: e.result.error or e.body (JSON string)
+    const result = e?.result?.error || (e?.body ? JSON.parse(e.body)?.error : null);
+    if (result) {
+      const status  = result.code;
+      const message = result.message || '';
+      const reason  = result.errors?.[0]?.reason || '';
+
+      if (status === 401) return { short: 'Not authorized', fix: 'Unlink and re-link your Google Calendar — your session expired.' };
+      if (status === 403 && reason === 'insufficientPermissions')
+        return { short: 'Insufficient permissions', fix: 'Unlink calendar and re-link — approve calendar edit access when prompted.' };
+      if (status === 403 && reason === 'forbidden')
+        return { short: 'Access forbidden', fix: 'Make sure your Google account has access to this calendar.' };
+      if (status === 403)
+        return { short: 'Access denied (403)', fix: 'Check that the Calendar API is enabled in Google Cloud Console and your API key allows calendar.events scope.' };
+      if (status === 404)
+        return { short: 'Event not found', fix: 'The calendar event was deleted — a new one will be created next save.' };
+      if (status === 429)
+        return { short: 'Too many requests', fix: 'Google is rate-limiting requests. Wait a minute and try again.' };
+      if (message) return { short: message, fix: null };
+    }
+  } catch(_) {}
+
+  // Network / script errors
+  const msg = e?.message || String(e) || '';
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError'))
+    return { short: 'No internet connection', fix: 'Check your connection and try editing the task again to re-sync.' };
+  if (msg.includes('gapi') || msg.includes('undefined'))
+    return { short: 'Google API not loaded', fix: 'Refresh the page and re-link your calendar.' };
+
+  return { short: msg || 'Unknown error', fix: 'Check the browser console for details.' };
+}
+
+function showCalSyncError(e) {
+  const { short, fix } = parseCalError(e);
+
+  // Remove any existing error banner
+  const old = document.getElementById('calSyncErrorBanner');
+  if (old) old.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'calSyncErrorBanner';
+  banner.style.cssText = [
+    'position:fixed', 'bottom:80px', 'left:12px', 'right:12px',
+    'max-width:406px', 'margin:0 auto',
+    'background:var(--surface)', 'border:1px solid var(--border-med)',
+    'border-left:3px solid var(--orange)',
+    'border-radius:var(--radius)',
+    'padding:14px 16px', 'z-index:999',
+    'box-shadow:0 4px 24px rgba(26,15,5,0.15)',
+    'animation:slideUp 0.25s ease'
+  ].join(';');
+
+  banner.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+      <div style="flex:1">
+        <div style="font-family:'Jost',sans-serif;font-size:9px;font-weight:500;letter-spacing:2.5px;text-transform:uppercase;color:var(--orange);margin-bottom:6px;">
+          Calendar Sync Failed — Task Saved
+        </div>
+        <div style="font-family:'Jost',sans-serif;font-size:12px;color:var(--text);margin-bottom:${fix ? '6px' : '0'}">
+          ${short}
+        </div>
+        ${fix ? `<div style="font-family:'Cormorant Garamond',serif;font-size:13px;font-style:italic;color:var(--text-muted);line-height:1.5">${fix}</div>` : ''}
+      </div>
+      <button onclick="document.getElementById('calSyncErrorBanner').remove()" style="
+        background:none;border:none;color:var(--text-muted);font-size:18px;
+        cursor:pointer;padding:0;line-height:1;flex-shrink:0;margin-top:-2px
+      ">×</button>
+    </div>
+  `;
+
+  document.body.appendChild(banner);
+
+  // Auto-dismiss after 10 seconds (long enough to read)
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, 10000);
+}
+
+function deleteTask() {
+  if (_modalIdx < 0) { closeModal(); return; }
+  const overrides = getTaskOverrides(_modalDate);
+  const key = _modalType + 'Tasks';
+  let tasks = getTasksForDate(_modalType, _modalDate);
+  tasks.splice(_modalIdx, 1);
+  overrides[key] = tasks;
+  saveTaskOverrides(_modalDate, overrides);
+  closeModal();
+  renderExerciseTasks();
+  renderStudyTasks();
+  updateProgressCards();
+}
+
+// Close modal on overlay click
+document.getElementById('taskModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('taskModal')) closeModal();
+});
+
+
+// ─── AM/PM TIME PICKER HELPERS ────────────────────────────────────
+
+function toggleAmPm(which) {
+  const btn = document.getElementById(which === 'start' ? 'modalAmPmStart' : 'modalAmPmEnd');
+  if (!btn) return;
+  const nowPm = btn.classList.contains('pm');
+  btn.textContent = nowPm ? 'AM' : 'PM';
+  btn.className   = 'ampm-btn ' + (nowPm ? 'am' : 'pm');
+}
+
+// Parses "11:00 – 12:30" or "11:00 AM – 12:30 PM" into the split inputs
+function populateTimeFields(timeStr) {
+  const startEl  = document.getElementById('modalTimeStart');
+  const endEl    = document.getElementById('modalTimeEnd');
+  const startBtn = document.getElementById('modalAmPmStart');
+  const endBtn   = document.getElementById('modalAmPmEnd');
+  if (!startEl) return;
+
+  // Helper: detect AM/PM from a time part string, default PM
+  function detectAmPm(str) {
+    if (!str) return 'PM';
+    if (str.toLowerCase().includes('am')) return 'AM';
+    if (str.toLowerCase().includes('pm')) return 'PM';
+    const h = parseInt((str.match(/^(\d{1,2})/) || [])[1] || '13');
+    return (h >= 12 || h < 6) ? 'PM' : 'AM';
+  }
+
+  // Helper: convert 24h hour to 12h display
+  function to12h(str) {
+    const m = (str || '').match(/(\d{1,2}):(\d{2})/);
+    if (!m) return '';
+    let h = parseInt(m[1]);
+    const min = m[2];
+    const display = (h === 0 ? 12 : h > 12 ? h - 12 : h);
+    return display + ':' + min;
+  }
+
+  const parts    = (timeStr || '').replace(/[–—]/g, '|').split('|').map(s => s.trim());
+  const startStr = parts[0] || '';
+  const endStr   = parts[1] || '';
+  const startAp  = detectAmPm(startStr);
+  const endAp    = detectAmPm(endStr);
+
+  startEl.value = to12h(startStr);
+  if (endEl) endEl.value = to12h(endStr);
+
+  function setBtn(btn, ap) {
+    if (!btn) return;
+    btn.textContent = ap;
+    btn.className   = 'ampm-btn ' + ap.toLowerCase();
+  }
+  setBtn(startBtn, startAp);
+  setBtn(endBtn,   endAp);
+}
+
+// Combines split fields → hidden #modalTime as "13:00 – 14:30" (24h for calendar)
+function syncTimeHidden() {
+  const startEl  = document.getElementById('modalTimeStart');
+  const endEl    = document.getElementById('modalTimeEnd');
+  const startBtn = document.getElementById('modalAmPmStart');
+  const endBtn   = document.getElementById('modalAmPmEnd');
+  const hidden   = document.getElementById('modalTime');
+  if (!hidden) return;
+
+  function to24h(str, ap) {
+    const m = (str || '').trim().match(/(\d{1,2})(?::(\d{2}))?/);
+    if (!m) return '';
+    let h = parseInt(m[1]);
+    const min = parseInt(m[2] || '0');
+    if (ap === 'PM' && h < 12) h += 12;
+    if (ap === 'AM' && h === 12) h = 0;
+    return h + ':' + String(min).padStart(2, '0');
+  }
+
+  const startAp = startBtn?.textContent?.trim() || 'PM';
+  const endAp   = endBtn?.textContent?.trim()   || 'PM';
+  const start24 = to24h(startEl?.value, startAp);
+  const end24   = to24h(endEl?.value,   endAp);
+
+  hidden.value = start24 && end24 ? start24 + ' – ' + end24
+               : start24 ? start24
+               : '';
+}
+
+// ─── GOOGLE CALENDAR SYNC ────────────────────────────────────────
+
+// Parse "11:00" or "8:30" into { h, min }
+function parseTimeComponents(str) {
+  const clean = (str || '').trim();
+  const m = clean.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return { h: 12, min: 0 };
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  if (clean.toLowerCase().includes('pm') && h < 12) h += 12;
+  return { h, min };
+}
+
+// Build a local datetime string like "2026-03-07T11:00:00" without UTC conversion.
+// Google Calendar uses the timeZone field to interpret this correctly.
+function localDateTimeStr(dateStr, h, min) {
+  const hh  = String(h).padStart(2, '0');
+  const mm  = String(min).padStart(2, '0');
+  return dateStr + 'T' + hh + ':' + mm + ':00';
+}
+
+function buildEventResource(name, timeStr, dateStr, type) {
+  const tz    = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const parts = (timeStr || '').replace(/[–—]/g, '|').split('|').map(s => s.trim());
+
+  const startComponents = parseTimeComponents(parts[0]);
+  const endComponents   = parts[1]
+    ? parseTimeComponents(parts[1])
+    : { h: startComponents.h + 1, min: startComponents.min }; // default +1hr
+
+  const startDT = localDateTimeStr(dateStr, startComponents.h, startComponents.min);
+  const endDT   = localDateTimeStr(dateStr, endComponents.h,   endComponents.min);
+
+  console.log('[CalSync] buildEventResource — date:', dateStr, '| start:', startDT, '| end:', endDT, '| tz:', tz);
+
+  return {
+    summary:     name,
+    description: 'Added from Goal Tracker',
+    colorId:     type === 'exercise' ? '11' : '9', // tomato / blueberry
+    start: { dateTime: startDT, timeZone: tz },
+    end:   { dateTime: endDT,   timeZone: tz }
+  };
+}
+
+// Returns eventId (string) or null on failure
+async function createCalendarEvent(name, timeStr, dateStr, type) {
+  await ensureCalendarApi();
+  const resource = buildEventResource(name, timeStr, dateStr, type);
+  console.log('[CalSync] Creating event:', name, dateStr, resource.start, resource.end);
+  const resp = await gapi.client.calendar.events.insert({
+    calendarId: 'primary',
+    resource
+  });
+  console.log('[CalSync] Event created successfully. ID:', resp.result.id, 'Link:', resp.result.htmlLink);
+  return resp.result.id;
+}
+
+// Returns eventId (string) — same id on success, null on 404 (creates new instead)
+async function updateCalendarEvent(eventId, name, timeStr, dateStr, type) {
+  await ensureCalendarApi();
+  const resource = buildEventResource(name, timeStr, dateStr, type);
+  console.log('[CalSync] Updating event. ID:', eventId, '| name:', name, '| date:', dateStr, '| start:', resource.start, '| end:', resource.end);
+  try {
+    const resp = await gapi.client.calendar.events.update({
+      calendarId: 'primary',
+      eventId,
+      resource
+    });
+    console.log('[CalSync] Event updated successfully. ID:', resp.result.id);
+    return resp.result.id;
+  } catch(e) {
+    console.error('[CalSync] Update failed. Status:', e.status, '| Body:', e.body || e.message);
+    if (e.status === 404 || e.status === 410) {
+      console.log('[CalSync] Event not found — creating new one instead');
+      return await createCalendarEvent(name, timeStr, dateStr, type);
+    }
+    throw e;
+  }
+}
+
+async function ensureCalendarApi() {
+  const g = safeGapi();
+  if (!g) throw new Error('Google API (gapi) not loaded yet — refresh the page');
+  if (!g.client.calendar) {
+    await g.client.load('calendar', 'v3');
+  }
+}
+
+// ─── WEEKLY SCORE ─────────────────────────────────────────────────
+
+function renderWeekScore() {
+  const summary  = document.getElementById('weekSummaryCard');
+  const barsEl   = document.getElementById('weekDayBars');
+  if (!summary || !barsEl) return;
+
+  const today    = new Date();
+  const todayStr = getToday();
+  const dow      = today.getDay();
+  const diffToMon = dow === 0 ? -6 : 1 - dow;
+  const monday   = new Date(today);
+  monday.setDate(today.getDate() + diffToMon + (weekOffset * 7));
+
+  const state    = loadState();
+  const dayOrder = [1,2,3,4,5,6,0]; // Mon–Sun
+
+  let exPossible = 0, exDone = 0, stPossible = 0, stDone = 0;
+  const days = [];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dateStr  = d.toISOString().split('T')[0];
+    const isFuture = dateStr > todayStr;
+    const isToday  = dateStr === todayStr;
+    const isPast   = dateStr < todayStr;
+    const jsDay    = dayOrder[i];
+    const dayName  = DAYS[jsDay];
+    const shortDay = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i];
+
+    const exTasks  = getTasksForDate('exercise', dateStr).filter(t => !t.name.toLowerCase().includes('rest'));
+    const stTasks  = getTasksForDate('study', dateStr);
+    const data     = state[dateStr] || {};
+    const exG      = exTasks.length;
+    const stG      = stTasks.length;
+    const exD      = (data.exercise || []).length;
+    const stD      = (data.study    || []).length;
+
+    if (!isFuture && dateStr >= PLAN_START) {
+      // Count individual tasks done vs possible (not just binary day complete)
+      if (exG > 0) { exPossible += exG; exDone += Math.min(exD, exG); }
+      if (stG > 0) { stPossible += stG; stDone += Math.min(stD, stG); }
+    }
+
+    const energy = (!isFuture && data.energy) ? data.energy : 0;
+    days.push({ shortDay, dateStr, isToday, isFuture, isPast, exG, stG, exD, stD, energy });
+  }
+
+  const total = exPossible + stPossible;
+  const done  = exDone + stDone;
+  const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  const grade = pct >= 90 ? { label: 'On track',    bg: 'rgba(122,154,122,0.25)', color: 'var(--sage)' }
+              : pct >= 70 ? { label: 'Good',         bg: 'rgba(184,134,11,0.2)',   color: 'var(--gold-light)' }
+              : pct >= 40 ? { label: 'Keep going',   bg: 'rgba(200,82,26,0.2)',    color: 'var(--orange)' }
+              :             { label: 'Just starting', bg: 'rgba(200,82,26,0.15)',   color: 'var(--orange)' };
+
+  const weekLabel = weekOffset === 0 ? 'This week' : weekOffset === -1 ? 'Last week' : 'Next week';
+  const rangeStr  = monday.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' +
+                    new Date(monday.getTime()+6*86400000).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const progNavLabel = document.getElementById('weekNavLabelProgress');
+  if (progNavLabel) progNavLabel.textContent = weekLabel;
+
+  // ── Summary card ─────────────────────────────────────────────
+  summary.innerHTML = `
+    <div class="summary-card">
+      <div class="summary-meta">${weekLabel.toUpperCase()} · ${rangeStr}</div>
+      <div class="summary-top">
+        <div>
+          <div class="summary-pct">${pct}<span>%</span></div>
+        </div>
+        <div class="summary-grade" style="background:${grade.bg};color:${grade.color}">${grade.label.toUpperCase()}</div>
+      </div>
+      <div class="summary-pills">
+        <div class="summary-pill">
+          <div class="summary-pill-num">${exDone}<span style="font-size:14px;color:var(--sand)">/${exPossible}</span></div>
+          <div class="summary-pill-label">Exercise tasks</div>
+        </div>
+        <div class="summary-pill study">
+          <div class="summary-pill-num">${stDone}<span style="font-size:14px;color:var(--sand)">/${stPossible}</span></div>
+          <div class="summary-pill-label">Study tasks</div>
+        </div>
+      </div>
+      ${(()=>{
+        const ENERGY_EMOJI = ['','😴','😐','😊','🔥'];
+        const ENERGY_LABEL = ['','Low','OK','Good','Great'];
+        const moodDays = days.filter(d => !d.isFuture && d.energy > 0);
+        if (moodDays.length === 0) return '';
+        const avg = moodDays.reduce((s,d)=>s+d.energy,0) / moodDays.length;
+        const avgIdx = Math.round(avg);
+        const moodColor = avg >= 3.5 ? 'var(--sage)' : avg >= 2.5 ? 'var(--gold-light)' : 'var(--orange)';
+        const dots = days.map(d => {
+          if (d.isFuture || !d.energy) return `<span style="color:var(--border-med);font-size:16px">·</span>`;
+          return `<span title="${d.shortDay}: ${ENERGY_LABEL[d.energy]}" style="font-size:16px;cursor:default">${ENERGY_EMOJI[d.energy]}</span>`;
+        }).join('');
+        return `
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+            <div style="font-family:'Jost',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">Energy this week</div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;gap:6px;align-items:center">${dots}</div>
+              <div style="font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:${moodColor}">${ENERGY_EMOJI[avgIdx]} avg ${ENERGY_LABEL[avgIdx].toLowerCase()}</div>
+            </div>
+          </div>`;
+      })()}
+    </div>
+  `;
+
+  // ── Day bars ─────────────────────────────────────────────────
+  barsEl.innerHTML = '<div class="day-bars">' + days.map(day => {
+    const exPct  = day.exG > 0 ? Math.min(day.exD / day.exG, 1) * 100 : 0;
+    const stPct  = day.stG > 0 ? Math.min(day.stD / day.stG, 1) * 100 : 0;
+    const hasEx  = day.exG > 0;
+    const hasSt  = day.stG > 0;
+
+    let status = '';
+    let note   = '';
+
+    if (day.isFuture) {
+      status = '·';
+      note   = hasEx || hasSt ? 'upcoming' : 'rest';
+    } else if (!hasEx && !hasSt) {
+      status = '—';
+      note   = 'rest day';
+    } else {
+      const anyDone  = day.exD > 0 || day.stD > 0;
+      const allExDone = !hasEx || day.exD >= day.exG;
+      const allStDone = !hasSt || day.stD >= day.stG;
+      if (allExDone && allStDone) { status = '✓'; note = 'complete'; }
+      else if (!anyDone)          { status = '○'; note = 'missed'; }
+      else                        { status = '◑'; note = 'partial'; }
+    }
+
+    return `
+      <div class="day-bar-row ${day.isToday ? 'today-row' : ''}">
+        <div class="day-bar-label">${day.shortDay}${day.isToday ? ' ●' : ''}</div>
+        <div class="day-bar-tracks">
+          ${hasEx ? `<div class="day-bar-track"><div class="day-bar-fill ex" style="width:${exPct}%"></div></div>` : ''}
+          ${hasSt ? `<div class="day-bar-track"><div class="day-bar-fill study" style="width:${stPct}%"></div></div>` : ''}
+          ${!hasEx && !hasSt ? `<div style="height:4px;"></div>` : ''}
+        </div>
+        <div class="day-bar-status">${status}</div>
+        <div style="font-size:15px;flex-shrink:0;width:20px;text-align:center;opacity:${day.energy ? '1' : '0.2'}" title="${['','Low','OK','Good','Great'][day.energy] || ''}">${['','😴','😐','😊','🔥'][day.energy] || '·'}</div>
+        <div class="day-bar-note">${note}</div>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+
+
+// ─── PUSH NOTIFICATIONS & SERVICE WORKER ─────────────────────────
+
+const AGENT_URL = window.TRACKER_CONFIG?.agentUrl || '';
+
+async function initPushNotifications() {
+  if (!AGENT_URL || AGENT_URL === 'YOUR_RAILWAY_URL') return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.log('Push not supported on this browser');
+    return;
+  }
+
+  try {
+    // Register service worker
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    console.log('Service worker registered');
+
+    // Listen for messages from service worker (notification taps)
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.type === 'AGENT_NOTIFICATION') {
+        showAgentBanner(event.data.data?.suggestion, event.data.data?.dayName);
+      }
+    });
+
+    // Check if already subscribed
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      console.log('Already subscribed to push');
+      return;
+    }
+
+    // Ask permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.log('Push permission denied');
+      return;
+    }
+
+    // Get VAPID public key from server
+    const keyRes = await fetch(AGENT_URL + '/api/vapid-public-key');
+    const { key } = await keyRes.json();
+
+    // Subscribe
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key)
+    });
+
+    // Send subscription to server
+    await fetch(AGENT_URL + '/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subscription)
+    });
+
+    console.log('Push subscription registered with agent');
+  } catch(e) {
+    console.warn('Push setup error:', e);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+function showAgentBanner(suggestion, dayName) {
+  const banner = document.getElementById('agentBanner');
+  const text   = document.getElementById('agentSuggestionText');
+  if (!banner || !text || !suggestion) return;
+  text.textContent = suggestion;
+  banner.style.display = '';
+  // Switch to today tab
+  switchTab('today');
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function dismissAgentBanner() {
+  const banner = document.getElementById('agentBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+// Check URL params — notification tap opens /?agent=1
+function checkAgentParam() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('agent') === '1') {
+    // Suggestion comes via postMessage from SW, but also check sessionStorage
+    const cached = sessionStorage.getItem('agentSuggestion');
+    if (cached) {
+      try {
+        const { suggestion, dayName } = JSON.parse(cached);
+        showAgentBanner(suggestion, dayName);
+        sessionStorage.removeItem('agentSuggestion');
+      } catch(e) {}
+    }
+  }
+}
+
+// ─── RIPPLE ───────────────────────────────────────────────────────
+function addRipple(el, e) {
+  const rect = el.getBoundingClientRect();
+  const r = document.createElement('div');
+  r.className = 'ripple';
+  const size = Math.max(rect.width, rect.height);
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size/2}px;top:${e.clientY - rect.top - size/2}px`;
+  el.appendChild(r);
+  setTimeout(() => r.remove(), 500);
+}
+</script>
+</body>
+</html>
