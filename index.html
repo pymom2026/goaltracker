@@ -2716,7 +2716,7 @@ function evToMins(ev) {
   return null;
 }
 
-function overlaps(as, ae, bs, be, minMins=5) { return Math.min(ae,be) - Math.max(as,bs) >= minMins; }
+function overlaps(as, ae, bs, be, minMins=2) { return Math.min(ae,be) - Math.max(as,bs) >= minMins; }
 
 function eventsForDate(events, dateStr) {
   return events.filter(ev => {
@@ -2737,9 +2737,10 @@ function detectConflictsForDate(events, dateStr) {
     .filter(ev => !/^[📚🏃💪🧘]/.test(ev.summary || ''))
     .map(evToMins)
     .filter(Boolean)
+    .filter(m => !m.allDay)
     .filter(m => !IGNORED_EVENTS.some(ig => m.title.toLowerCase().includes(ig)));
   
-  console.log('[Conflicts] Date:', dateStr, 'Day:', dayName, 'Events found:', dayEvMins.length, dayEvMins.map(m => m.title + ' ' + m.s + '-' + m.e));
+  console.log('[Conflicts] Date:', dateStr, 'Day:', dayName, 'Events found:', dayEvMins.length, dayEvMins.map(m => m.title + ' ' + m.s + '-' + m.e + (m.allDay?' ALL-DAY':'')));
 
   const conflicts = [];
   for (const type of ['exercise', 'study']) {
